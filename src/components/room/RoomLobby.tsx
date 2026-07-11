@@ -123,6 +123,12 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
             Koło fortuny
           </Link>
         </div>
+        <Link
+          href={`/room/${roomCode}/history`}
+          className="bg-secondary rounded-full py-3 text-center text-sm font-bold text-foreground"
+        >
+          Historia
+        </Link>
       </div>
     </main>
   );
