@@ -1,0 +1,163 @@
+/** Warstwa dostępu do Firestore dla pokoi/uczestników/puli gier. Czysto
+ * mechaniczne CRUD + subskrypcje -- logika eliminacji rundowej żyje osobno
+ * w lib/elimination.ts (czysta funkcja, testowalna bez Firestore). Model
+ * danych: work/active/Tumolec.md w vaulcie Obsidian. */
+
+import {
+  collection,
+  doc,
+  DocumentData,
+  getDoc,
+  onSnapshot,
+  QueryDocumentSnapshot,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import type { SwipeGame } from "@/lib/types";
+import type { SwipeDirection } from "@/lib/elimination";
+
+// Bez znaków mylonych przy czytaniu na głos / przepisywaniu z ekranu (0/O, 1/I/L).
+const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const ROOM_CODE_LENGTH = 6;
+
+function randomRoomCode(): string {
+  let code = "";
+  for (let i = 0; i < ROOM_CODE_LENGTH; i++) {
+    code += ROOM_CODE_CHARS[Math.floor(Math.random() * ROOM_CODE_CHARS.length)];
+  }
+  return code;
+}
+
+export async function createRoom(name: string): Promise<string> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = randomRoomCode();
+    const ref = doc(db, "rooms", code);
+    if ((await getDoc(ref)).exists()) continue; // kolizja, praktycznie niemożliwa, ale sprawdzamy
+    await setDoc(ref, { name, createdAt: serverTimestamp(), activeFeature: "swipe" });
+    return code;
+  }
+  throw new Error("Nie udało się wylosować wolnego kodu pokoju, spróbuj ponownie.");
+}
+
+export async function roomExists(roomCode: string): Promise<boolean> {
+  return (await getDoc(doc(db, "rooms", roomCode))).exists();
+}
+
+export function subscribeToRoom(
+  roomCode: string,
+  onChange: (data: { name: string; activeFeature: string } | null) => void,
+) {
+  return onSnapshot(doc(db, "rooms", roomCode), (snap) => {
+    onChange(snap.exists() ? (snap.data() as { name: string; activeFeature: string }) : null);
+  });
+}
+
+export type Participant = { participantId: string; nickname: string };
+
+export async function joinRoom(roomCode: string, participantId: string, nickname: string) {
+  await setDoc(doc(db, "rooms", roomCode, "participants", participantId), {
+    nickname,
+    joinedAt: serverTimestamp(),
+  });
+}
+
+export function subscribeToParticipants(roomCode: string, onChange: (p: Participant[]) => void) {
+  return onSnapshot(collection(db, "rooms", roomCode, "participants"), (snap) => {
+    onChange(
+      snap.docs.map((d) => ({ participantId: d.id, nickname: (d.data() as { nickname: string }).nickname })),
+    );
+  });
+}
+
+export type PoolGame = SwipeGame & { status: "active" | "played" | "removed"; addedBy: string };
+
+function toPoolGame(gameDoc: QueryDocumentSnapshot<DocumentData>, cache: DocumentData | undefined): PoolGame {
+  const g = gameDoc.data();
+  return {
+    steamAppId: g.steamAppId,
+    addedBy: g.addedBy,
+    status: g.status,
+    title: cache?.name ?? "…",
+    coverImageUrl: cache?.headerImageUrl,
+    tags: cache?.tags ?? [],
+    reviewScorePercent: cache?.reviewScorePercent ?? 0,
+    reviewSummary: cache?.reviewSummary ?? "",
+  };
+}
+
+/** Dodaje grę do puli pokoju. Zakłada, że steam_cache/{steamAppId} już istnieje
+ * (wywołaj /api/steam/details przy wyborze podpowiedzi, zanim to zawołasz). */
+export async function addGameToPool(roomCode: string, steamAppId: number, addedBy: string) {
+  await setDoc(doc(db, "rooms", roomCode, "games", String(steamAppId)), {
+    steamAppId,
+    addedBy,
+    status: "active",
+    addedAt: serverTimestamp(),
+  });
+}
+
+export async function setGameStatus(roomCode: string, steamAppId: number, status: "played" | "removed") {
+  await updateDoc(doc(db, "rooms", roomCode, "games", String(steamAppId)), {
+    status,
+    playedAt: status === "played" ? serverTimestamp() : null,
+  });
+}
+
+/** Subskrybuje pulę gier pokoju połączoną z ich metadanymi z globalnego cache.
+ * Uproszczenie Fazy 1: pojedyncze `getDoc` na cache per gra przy każdej zmianie
+ * listy zamiast osobnej subskrypcji per dokument -- cache rzadko się zmienia
+ * (odświeżany raz na 30 dni), więc nie potrzebuje własnego realtime listenera. */
+export function subscribeToGamePool(roomCode: string, onChange: (games: PoolGame[]) => void) {
+  return onSnapshot(collection(db, "rooms", roomCode, "games"), async (snap) => {
+    const games = await Promise.all(
+      snap.docs.map(async (gameDoc) => {
+        const cacheSnap = await getDoc(doc(db, "steam_cache", String(gameDoc.data().steamAppId)));
+        return toPoolGame(gameDoc, cacheSnap.exists() ? cacheSnap.data() : undefined);
+      }),
+    );
+    onChange(games);
+  });
+}
+
+// ── Rundy eliminacji ──────────────────────────────────────────────────────
+
+export async function startRound(roomCode: string, roundNumber: number, poolAtStart: number[]): Promise<string> {
+  const roundId = `round-${roundNumber}`;
+  await setDoc(doc(db, "rooms", roomCode, "eliminationRounds", roundId), {
+    roundNumber,
+    poolAtStart,
+    status: "voting",
+  });
+  return roundId;
+}
+
+export async function castSwipe(
+  roomCode: string,
+  roundId: string,
+  participantId: string,
+  steamAppId: number,
+  direction: SwipeDirection,
+) {
+  const swipeId = `${participantId}_${steamAppId}`;
+  await setDoc(doc(db, "rooms", roomCode, "eliminationRounds", roundId, "swipes", swipeId), {
+    participantId,
+    steamAppId,
+    direction,
+  });
+}
+
+export function subscribeToRoundSwipes(
+  roomCode: string,
+  roundId: string,
+  onChange: (swipes: { participantId: string; steamAppId: number; direction: SwipeDirection }[]) => void,
+) {
+  return onSnapshot(collection(db, "rooms", roomCode, "eliminationRounds", roundId, "swipes"), (snap) => {
+    onChange(
+      snap.docs.map(
+        (d) => d.data() as { participantId: string; steamAppId: number; direction: SwipeDirection },
+      ),
+    );
+  });
+}
