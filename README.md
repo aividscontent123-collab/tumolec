@@ -19,42 +19,17 @@ Otwórz [http://localhost:3000](http://localhost:3000).
 
 ## Status
 
-**Faza 0 — Fundamenty: w toku.**
+**Faza 0 — Fundamenty: gotowe.**
 
 - [x] Szkielet Next.js + TypeScript + Tailwind + shadcn/ui
 - [x] Design tokens (wariant 1a "Fiolet elektryczny") w `src/app/globals.css`
 - [x] Pierwszy realny komponent: karta swipe (`src/components/swipe/SwipeCard.tsx`) z danymi demo
-- [x] Szkic `firestore.rules` (do wdrożenia po utworzeniu projektu Firebase)
-- [ ] Projekt Firebase + Firestore — **wymaga Twojego konta Google**, zob. niżej
-- [ ] Repo na GitHubie — **wymaga Twojego konta**, zob. niżej
-- [ ] Deploy na Vercel — **wymaga Twojego konta**, zob. niżej
+- [x] Projekt Firebase (`tumolec-d67d9`) + Firestore (`eur3`) + `firestore.rules` wdrożone
+- [x] Repo GitHub: https://github.com/aividscontent123-collab/tumolec
+- [x] Deploy Vercel: **https://tumolec.vercel.app**
+- [ ] Auto-deploy przy pushu — trzeba dokończyć w dashboardzie Vercel (Import z GitHuba, `vercel.com/new`) — CLI `vercel git connect` nie przechodzi
 
-## Kroki wymagające Twojego konta (jednorazowo)
-
-Te trzy rzeczy nie mogą zostać zrobione automatycznie — wymagają logowania do Twoich kont. Wykonaj kiedy będziesz gotów, potem daj mi znać i dokończę wpięcie.
-
-**1. Firebase (baza danych)**
-```bash
-npm install -g firebase-tools
-firebase login
-firebase init firestore   # w katalogu tumolec, wybierz "Use an existing project" -> utwórz nowy w konsoli jeśli trzeba
-```
-Po utworzeniu projektu: Project Settings -> General -> Your apps -> Add app (Web) -> skopiuj wartości do `.env.local` (wzór w `.env.local.example`).
-
-**2. GitHub (repo)**
-```bash
-gh auth login
-gh repo create tumolec --private --source=. --remote=origin --push
-```
-
-**3. Vercel (hosting)**
-```bash
-npm install -g vercel
-vercel login
-vercel link
-vercel env add   # dodaj te same zmienne co w .env.local
-vercel --prod
-```
+Następny krok: Faza 1 (realna logika eliminacji rundowej + integracja Steam API). Zob. `work/active/Tumolec.md` w vaulcie.
 
 ## Bezpieczeństwo
 
