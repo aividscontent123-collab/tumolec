@@ -102,12 +102,20 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
         </div>
       </div>
 
-      <Link
-        href={`/room/${roomCode}/pool`}
-        className="bg-accent-brand rounded-full py-3 text-center text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)]"
-      >
-        Pula gier →
-      </Link>
+      <div className="flex flex-col gap-3">
+        <Link
+          href={`/room/${roomCode}/pool`}
+          className="bg-accent-brand rounded-full py-3 text-center text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)]"
+        >
+          Pula gier →
+        </Link>
+        <Link
+          href={`/room/${roomCode}/coinflip`}
+          className="bg-secondary rounded-full py-3 text-center text-sm font-bold text-foreground"
+        >
+          Rzut monetą
+        </Link>
+      </div>
     </main>
   );
 }

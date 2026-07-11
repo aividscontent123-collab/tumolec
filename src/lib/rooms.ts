@@ -12,6 +12,7 @@ import {
   QueryDocumentSnapshot,
   serverTimestamp,
   setDoc,
+  Timestamp,
   updateDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -192,5 +193,35 @@ export async function finishRound(roomCode: string, roundId: string, survivors: 
   await updateDoc(doc(db, "rooms", roomCode, "eliminationRounds", roundId), {
     status: "finished",
     survivors,
+  });
+}
+
+// ── Rzut monetą ───────────────────────────────────────────────────────────
+// `rooms/{roomCode}/session/state` to WSPÓLNY dokument z zakładką koła fortuny
+// (pole `wheel`, inny agent). Piszemy wyłącznie przez `{ merge: true }` na
+// samym polu `coinflip`, żeby nigdy nie nadpisać `wheel` przy scaleniu.
+
+export type CoinflipState = {
+  result: "heads" | "tails" | null;
+  spinning: boolean;
+  triggeredAt: Timestamp | null;
+};
+
+/** Losuje wynik po stronie klienta i publikuje go od razu -- wszyscy
+ * uczestnicy widzą ten sam `result` przez realtime subskrypcję i odgrywają
+ * lokalnie tę samą animację niemal jednocześnie (patrz CoinFlip3D). */
+export async function triggerCoinflip(roomCode: string): Promise<"heads" | "tails"> {
+  const result: "heads" | "tails" = Math.random() < 0.5 ? "heads" : "tails";
+  await setDoc(
+    doc(db, "rooms", roomCode, "session", "state"),
+    { coinflip: { spinning: true, result, triggeredAt: serverTimestamp() } },
+    { merge: true },
+  );
+  return result;
+}
+
+export function subscribeToCoinflip(roomCode: string, onChange: (coinflip: CoinflipState | null) => void) {
+  return onSnapshot(doc(db, "rooms", roomCode, "session", "state"), (snap) => {
+    onChange(snap.exists() ? ((snap.data().coinflip as CoinflipState | undefined) ?? null) : null);
   });
 }
