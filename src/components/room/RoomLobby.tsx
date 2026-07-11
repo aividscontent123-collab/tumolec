@@ -60,14 +60,12 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
               onChange={(e) => setJoinNickname(e.target.value)}
               placeholder="Twój pseudonim"
               maxLength={24}
-              className="rounded-xl border px-4 py-3 text-foreground"
-              style={{ backgroundColor: "oklch(0.2 0.02 265)", borderColor: "oklch(0.3 0.02 265)" }}
+              className="bg-card border-border rounded-xl border px-4 py-3 text-foreground"
             />
             <button
               type="submit"
               disabled={joining}
-              className="rounded-full py-3 text-sm font-bold text-white disabled:opacity-50"
-              style={{ backgroundColor: "var(--accent-brand)", boxShadow: "0 8px 24px var(--accent-brand-soft)" }}
+              className="bg-accent-brand rounded-full py-3 text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)] disabled:opacity-50"
             >
               Dołącz
             </button>
@@ -86,29 +84,27 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
         KOD POKOJU: {roomCode}
       </p>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-2">
-        {participants.map((p) => (
-          <div key={p.participantId} className="flex items-center gap-3">
-            <div
-              className="flex h-[26px] w-[26px] items-center justify-center rounded-full text-[11px] font-bold text-white"
-              style={{
-                backgroundColor:
-                  AVATAR_COLORS[participants.indexOf(p) % AVATAR_COLORS.length],
-              }}
-            >
-              {p.nickname[0]?.toUpperCase()}
+      <div className="flex flex-1 flex-col items-center justify-center gap-3">
+        <div className="bg-card border-border flex w-full max-w-xs flex-col gap-2 rounded-2xl border p-4">
+          {participants.map((p, i) => (
+            <div key={p.participantId} className="flex items-center gap-3">
+              <div
+                className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                style={{ backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
+              >
+                {p.nickname[0]?.toUpperCase()}
+              </div>
+              <span className="text-sm text-foreground">
+                {p.nickname} {p.nickname === nickname && "(Ty)"}
+              </span>
             </div>
-            <span className="text-sm text-foreground">
-              {p.nickname} {p.nickname === nickname && "(Ty)"}
-            </span>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       <Link
         href={`/room/${roomCode}/pool`}
-        className="rounded-full py-3 text-center text-sm font-bold text-white"
-        style={{ backgroundColor: "var(--accent-brand)", boxShadow: "0 8px 24px var(--accent-brand-soft)" }}
+        className="bg-accent-brand rounded-full py-3 text-center text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)]"
       >
         Pula gier →
       </Link>

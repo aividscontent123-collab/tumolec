@@ -6,6 +6,7 @@ import { subscribeToGamePool, type PoolGame } from "@/lib/rooms";
 import { useParticipant } from "@/lib/useParticipant";
 import { AddGameForm } from "@/components/room/AddGameForm";
 import { GamePoolList } from "@/components/room/GamePoolList";
+import { cn } from "@/lib/utils";
 
 export function GamePoolScreen({ roomCode }: { roomCode: string }) {
   const { participantId } = useParticipant(roomCode);
@@ -31,8 +32,7 @@ export function GamePoolScreen({ roomCode }: { roomCode: string }) {
         <Link
           href={`/room/${roomCode}`}
           aria-label="Wstecz"
-          className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full text-lg"
-          style={{ backgroundColor: "oklch(0.24 0.02 265)" }}
+          className="bg-secondary flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full text-lg text-foreground"
         >
           ‹
         </Link>
@@ -47,13 +47,13 @@ export function GamePoolScreen({ roomCode }: { roomCode: string }) {
 
       <Link
         href={`/room/${roomCode}/swipe`}
-        className="rounded-full py-3 text-center text-sm font-bold text-white"
-        style={{
-          backgroundColor: activeGames.length >= 2 ? "var(--accent-brand)" : "oklch(0.24 0.02 265)",
-          boxShadow: activeGames.length >= 2 ? "0 8px 24px var(--accent-brand-soft)" : "none",
-          pointerEvents: activeGames.length >= 2 ? "auto" : "none",
-          color: activeGames.length >= 2 ? "white" : "var(--text-secondary)",
-        }}
+        aria-disabled={activeGames.length < 2}
+        className={cn(
+          "rounded-full py-3 text-center text-sm font-bold",
+          activeGames.length >= 2
+            ? "bg-accent-brand text-white shadow-[0_8px_24px_var(--accent-brand-soft)]"
+            : "bg-secondary text-text-secondary pointer-events-none",
+        )}
       >
         {activeGames.length >= 2 ? "Zacznij głosowanie →" : "Dodaj co najmniej 2 gry"}
       </Link>

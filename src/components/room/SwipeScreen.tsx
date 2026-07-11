@@ -164,7 +164,7 @@ function RoundVoting({
       </p>
       <main className="min-h-0 flex-1 px-[22px] pb-[18px]">
         <div className="relative h-full">
-          <SwipeCard game={currentGame} />
+          <SwipeCard key={currentGame.steamAppId} game={currentGame} onSwipe={handleSwipe} />
         </div>
       </main>
       <SwipeActionButtons onPass={() => handleSwipe("left")} onLike={() => handleSwipe("right")} />

@@ -55,15 +55,11 @@ export function AddGameForm({ roomCode, participantId }: { roomCode: string; par
         value={term}
         onChange={(e) => setTerm(e.target.value)}
         placeholder="Wpisz tytuł gry…"
-        className="w-full rounded-xl border px-4 py-3 text-foreground"
-        style={{ backgroundColor: "oklch(0.2 0.02 265)", borderColor: "oklch(0.3 0.02 265)" }}
+        className="bg-card border-border w-full rounded-xl border px-4 py-3 text-foreground"
       />
 
       {(suggestions.length > 0 || loading) && (
-        <div
-          className="absolute top-full right-0 left-0 z-10 mt-2 max-h-80 overflow-y-auto rounded-xl border"
-          style={{ backgroundColor: "oklch(0.16 0.02 265)", borderColor: "oklch(0.3 0.02 265)" }}
-        >
+        <div className="bg-popover border-border absolute top-full right-0 left-0 z-10 mt-2 max-h-80 overflow-y-auto rounded-xl border">
           {loading && <p className="text-text-secondary p-3 text-sm">Szukam…</p>}
           {suggestions.map((s) => (
             <button
@@ -88,11 +84,7 @@ export function AddGameForm({ roomCode, participantId }: { roomCode: string; par
         </div>
       )}
 
-      {error && (
-        <p style={{ color: "var(--pass)" }} className="mt-2 text-sm">
-          {error}
-        </p>
-      )}
+      {error && <p className="text-pass mt-2 text-sm">{error}</p>}
     </div>
   );
 }
