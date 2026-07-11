@@ -19,17 +19,20 @@ Otwórz [http://localhost:3000](http://localhost:3000).
 
 ## Status
 
-**Faza 0 — Fundamenty: gotowe.**
+**Fazy 0–4: gotowe i wdrożone.**
 
 - [x] Szkielet Next.js + TypeScript + Tailwind + shadcn/ui
 - [x] Design tokens (wariant 1a "Fiolet elektryczny") w `src/app/globals.css`
-- [x] Pierwszy realny komponent: karta swipe (`src/components/swipe/SwipeCard.tsx`) z danymi demo
-- [x] Projekt Firebase (`tumolec-d67d9`) + Firestore (`eur3`) + `firestore.rules` wdrożone
-- [x] Repo GitHub: https://github.com/aividscontent123-collab/tumolec
+- [x] Pula gier, swipe + eliminacja rundowa, ekran wyniku
+- [x] Rzut monetą (`/room/[code]/coinflip`), koło fortuny (`/room/[code]/wheel`)
+- [x] Redesign, tryb jasny/ciemny, PWA
+- [x] Przegląd bezpieczeństwa `firestore.rules` zamknięty i wdrożony
+- [x] Projekt Firebase (`tumolec-d67d9`) + Firestore (`eur3`)
+- [x] Repo GitHub (publiczne): https://github.com/aividscontent123-collab/tumolec
 - [x] Deploy Vercel: **https://tumolec.vercel.app**
-- [ ] Auto-deploy przy pushu — trzeba dokończyć w dashboardzie Vercel (Import z GitHuba, `vercel.com/new`) — CLI `vercel git connect` nie przechodzi
+- [x] Auto-deploy przy pushu podłączony
 
-Następny krok: Faza 1 (realna logika eliminacji rundowej + integracja Steam API). Zob. `work/active/Tumolec.md` w vaulcie.
+Następny krok: Faza 5 (backlog — historia sesji, statystyki grupy, import biblioteki Steam). Zob. `work/active/Tumolec.md` w vaulcie.
 
 ## Bezpieczeństwo
 
