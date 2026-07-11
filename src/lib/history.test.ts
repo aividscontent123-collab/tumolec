@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildHistory } from "./history";
+import { buildHistory, pluralizeGry } from "./history";
 import type { PoolGame } from "@/lib/rooms";
 
 /** Minimalne fixture -- buildHistory czyta tylko status/playedAt/steamAppId,
@@ -50,5 +50,27 @@ describe("buildHistory", () => {
       game({ steamAppId: 99, status: "played", playedAt: 500 }),
     ];
     expect(buildHistory(games).games.map((g) => g.steamAppId)).toEqual([10, 50, 99]);
+  });
+});
+
+describe("pluralizeGry", () => {
+  it.each([
+    [1, "grę"],
+    [2, "gry"],
+    [4, "gry"],
+    [5, "gier"],
+    [11, "gier"],
+    [12, "gier"],
+    [14, "gier"],
+    [21, "grę"],
+    [22, "gry"],
+    [24, "gry"],
+    [25, "gier"],
+    [111, "gier"],
+    [112, "gier"],
+    [122, "gry"],
+    [121, "grę"],
+  ])("pluralizeGry(%i) === %s", (n, expected) => {
+    expect(pluralizeGry(n)).toBe(expected);
   });
 });

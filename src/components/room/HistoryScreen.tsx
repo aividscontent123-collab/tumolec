@@ -5,13 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { subscribeToGamePool, type PoolGame } from "@/lib/rooms";
 import { useParticipant } from "@/lib/useParticipant";
-import { buildHistory } from "@/lib/history";
-
-function pluralizeGry(n: number): string {
-  if (n === 1) return "grę";
-  if (n >= 2 && n <= 4) return "gry";
-  return "gier";
-}
+import { buildHistory, pluralizeGry } from "@/lib/history";
 
 export function HistoryScreen({ roomCode }: { roomCode: string }) {
   const { participantId } = useParticipant(roomCode);
