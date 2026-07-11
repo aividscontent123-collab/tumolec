@@ -57,9 +57,14 @@ service cloud.firestore {
 
     match /steam_cache/{steamAppId} {
       allow read: if true;
-      // Zapis tylko z API routes (Admin SDK, service account, omija te reguły) --
-      // klient nigdy nie zapisuje bezpośrednio do steam_cache.
-      allow write: if false;
+      // ponytail: walidowany zapis zamiast Firebase Admin SDK + service account --
+      // to publiczny, nieosobowy cache metadanych ze Steama (nazwa/okładka/tagi),
+      // nie dane użytkownika, więc niski koszt błędu przy złym zapisie. Upgrade
+      // path jeśli kiedyś potrzebny ściślejszy zapis tylko-serwerowy: Admin SDK
+      // w API routes + `allow write: if false` tutaj.
+      allow write: if request.resource.data.name is string
+        && request.resource.data.reviewScorePercent is number
+        && request.resource.data.tags is list;
     }
   }
 }
