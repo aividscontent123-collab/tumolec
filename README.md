@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tumolec
 
-## Getting Started
+PWA do zbierania gier (dane ze Steama) i wyboru gry na wieczór metodą swipe + eliminacja rundowa, dla grupy 2-4 znajomych.
 
-First, run the development server:
+Pełny plan architektoniczny, model danych, roadmapa i uzasadnienia decyzji: `work/active/Tumolec.md` w vaulcie Obsidian (`C:\Users\miros\Desktop\RUFLO`).
+
+## Stos
+
+Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + shadcn/ui + Framer Motion + Firebase Firestore.
+
+## Rozwój lokalny
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Otwórz [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Status
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Faza 0 — Fundamenty: w toku.**
 
-## Learn More
+- [x] Szkielet Next.js + TypeScript + Tailwind + shadcn/ui
+- [x] Design tokens (wariant 1a "Fiolet elektryczny") w `src/app/globals.css`
+- [x] Pierwszy realny komponent: karta swipe (`src/components/swipe/SwipeCard.tsx`) z danymi demo
+- [x] Szkic `firestore.rules` (do wdrożenia po utworzeniu projektu Firebase)
+- [ ] Projekt Firebase + Firestore — **wymaga Twojego konta Google**, zob. niżej
+- [ ] Repo na GitHubie — **wymaga Twojego konta**, zob. niżej
+- [ ] Deploy na Vercel — **wymaga Twojego konta**, zob. niżej
 
-To learn more about Next.js, take a look at the following resources:
+## Kroki wymagające Twojego konta (jednorazowo)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Te trzy rzeczy nie mogą zostać zrobione automatycznie — wymagają logowania do Twoich kont. Wykonaj kiedy będziesz gotów, potem daj mi znać i dokończę wpięcie.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**1. Firebase (baza danych)**
+```bash
+npm install -g firebase-tools
+firebase login
+firebase init firestore   # w katalogu tumolec, wybierz "Use an existing project" -> utwórz nowy w konsoli jeśli trzeba
+```
+Po utworzeniu projektu: Project Settings -> General -> Your apps -> Add app (Web) -> skopiuj wartości do `.env.local` (wzór w `.env.local.example`).
 
-## Deploy on Vercel
+**2. GitHub (repo)**
+```bash
+gh auth login
+gh repo create tumolec --private --source=. --remote=origin --push
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**3. Vercel (hosting)**
+```bash
+npm install -g vercel
+vercel login
+vercel link
+vercel env add   # dodaj te same zmienne co w .env.local
+vercel --prod
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Bezpieczeństwo
+
+- `.env.local` nigdy nie jest commitowany (w `.gitignore`)
+- Klucz konfiguracyjny Firebase w kliencie jest publiczny z założenia — ochronę zapewnia `firestore.rules`, nie ukrywanie klucza
+- Zob. sekcję "Bezpieczeństwo" w planie projektu po pełne uzasadnienie

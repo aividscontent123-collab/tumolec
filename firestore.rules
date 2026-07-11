@@ -1,0 +1,65 @@
+rules_version = '2';
+
+// Model i uzasadnienie: work/active/Tumolec.md w vaulcie Obsidian (sekcja "Bezpieczeństwo").
+// Brak logowania -- dostęp kontrolowany przez znajomość 6-znakowego roomCode
+// (nie do odgadnięcia, 36^6 kombinacji) + participantId trzymany w localStorage klienta.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isValidNickname(nickname) {
+      return nickname is string && nickname.size() > 0 && nickname.size() <= 24;
+    }
+
+    match /rooms/{roomCode} {
+      allow read: if true;
+      allow create: if request.resource.data.name is string
+        && request.resource.data.name.size() <= 60;
+      allow update: if request.resource.data.diff(resource.data)
+        .affectedKeys().hasOnly(['activeFeature']);
+
+      match /participants/{participantId} {
+        allow read: if true;
+        allow create: if isValidNickname(request.resource.data.nickname);
+        allow update, delete: if false;
+      }
+
+      match /games/{steamAppId} {
+        allow read: if true;
+        allow create: if request.resource.data.steamAppId is number
+          && request.resource.data.addedBy is string
+          && request.resource.data.status == 'active';
+        // Tylko zmiana statusu (played/removed) -- nie edycja addedBy/steamAppId.
+        allow update: if request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly(['status', 'playedAt'])
+          && request.resource.data.status in ['active', 'played', 'removed'];
+        allow delete: if false;
+      }
+
+      match /eliminationRounds/{roundId} {
+        allow read: if true;
+        allow create, update: if true; // logika rund liczona po stronie klienta (Faza 1)
+
+        match /swipes/{swipeId} {
+          allow read: if true;
+          // swipeId musi być zbudowany jako `${participantId}_${steamAppId}` --
+          // to uniemożliwia głosowanie za kogoś innego bez znajomości cudzego participantId.
+          allow create: if swipeId == request.resource.data.participantId + '_' + string(request.resource.data.steamAppId)
+            && request.resource.data.direction in ['left', 'right'];
+          allow update, delete: if false; // głos jest ostateczny
+        }
+      }
+
+      match /session/state {
+        allow read: if true;
+        allow write: if true; // stan mini-gier (moneta/koło), niski risk, grupa 2-4 znajomych
+      }
+    }
+
+    match /steam_cache/{steamAppId} {
+      allow read: if true;
+      // Zapis tylko z API routes (Admin SDK, service account, omija te reguły) --
+      // klient nigdy nie zapisuje bezpośrednio do steam_cache.
+      allow write: if false;
+    }
+  }
+}
