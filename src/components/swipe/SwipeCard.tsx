@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useDrag } from "@use-gesture/react";
+import { ExternalLink } from "lucide-react";
 import type { SwipeGame } from "@/lib/types";
 import { decideSwipeDirection } from "@/lib/swipeGesture";
 
@@ -126,6 +127,21 @@ export function SwipeCard({
             </span>
           ))}
         </div>
+        <a
+          href={`https://store.steampowered.com/app/${game.steamAppId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/15 active:scale-95"
+          style={{
+            backgroundColor: "rgba(255,255,255,0.1)",
+            borderColor: "rgba(255,255,255,0.14)",
+          }}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          Szczegóły na Steam
+        </a>
       </div>
     </motion.div>
   );
