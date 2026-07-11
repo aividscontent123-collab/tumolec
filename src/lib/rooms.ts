@@ -161,3 +161,36 @@ export function subscribeToRoundSwipes(
     );
   });
 }
+
+export type RoundDoc = {
+  roundNumber: number;
+  poolAtStart: number[];
+  status: "voting" | "finished";
+  survivors: number[] | null;
+};
+
+export async function getRound(roomCode: string, roundId: string): Promise<RoundDoc | null> {
+  const snap = await getDoc(doc(db, "rooms", roomCode, "eliminationRounds", roundId));
+  return snap.exists() ? (snap.data() as RoundDoc) : null;
+}
+
+export function subscribeToRound(
+  roomCode: string,
+  roundId: string,
+  onChange: (round: RoundDoc | null) => void,
+) {
+  return onSnapshot(doc(db, "rooms", roomCode, "eliminationRounds", roundId), (snap) => {
+    onChange(snap.exists() ? (snap.data() as RoundDoc) : null);
+  });
+}
+
+/** Zamyka rundę z policzonym wynikiem. Wywoływane przez KTÓRYKOLWIEK klient,
+ * który zauważy że wszyscy skończyli głosować -- bezpieczne przy wyścigu,
+ * bo `survivors` to czysta funkcja tych samych danych (resolveRound), więc
+ * każdy klient policzy identyczny wynik niezależnie od tego kto zapisze pierwszy. */
+export async function finishRound(roomCode: string, roundId: string, survivors: number[]) {
+  await updateDoc(doc(db, "rooms", roomCode, "eliminationRounds", roundId), {
+    status: "finished",
+    survivors,
+  });
+}
