@@ -105,13 +105,22 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
         ))}
       </div>
 
-      <Link
-        href={`/room/${roomCode}/pool`}
-        className="rounded-full py-3 text-center text-sm font-bold text-white"
-        style={{ backgroundColor: "var(--accent-brand)", boxShadow: "0 8px 24px var(--accent-brand-soft)" }}
-      >
-        Pula gier →
-      </Link>
+      <div className="flex flex-col gap-3">
+        <Link
+          href={`/room/${roomCode}/pool`}
+          className="rounded-full py-3 text-center text-sm font-bold text-white"
+          style={{ backgroundColor: "var(--accent-brand)", boxShadow: "0 8px 24px var(--accent-brand-soft)" }}
+        >
+          Pula gier →
+        </Link>
+        <Link
+          href={`/room/${roomCode}/coinflip`}
+          className="rounded-full py-3 text-center text-sm font-bold text-foreground"
+          style={{ backgroundColor: "oklch(0.24 0.02 265)" }}
+        >
+          Rzut monetą
+        </Link>
+      </div>
     </main>
   );
 }

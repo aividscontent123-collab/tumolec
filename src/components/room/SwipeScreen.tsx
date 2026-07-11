@@ -119,9 +119,14 @@ function RoundVoting({
     } else if (result.status === "advance") {
       finalSurvivors = result.survivors;
     } else if (result.status === "tie-break") {
-      // ponytail: remis rozstrzygamy deterministycznie (najniższy appid), nie
-      // prawdziwym rzutem monetą -- integracja z zakładką moneta to Faza 3.
-      // Deterministyczne = bezpieczne przy kilku klientach liczących naraz.
+      // TODO(Faza 3+): zakładka /coinflip już istnieje (lib/rooms.ts
+      // triggerCoinflip/subscribeToCoinflip), ale NIE jest tu podpięta jako
+      // tie-breaker -- wymagałoby to nowego stanu rundy ("czeka na coinflip")
+      // i koordynacji KTÓRY klient triggeruje rzut, żeby wielu klientów
+      // liczących resolveRound niezależnie (patrz komentarz przy finishRound
+      // w lib/rooms.ts) nie próbowało rzucić monetą osobno z różnym wynikiem.
+      // Na razie zostaje deterministyczne rozstrzygnięcie (najniższy appid) --
+      // bezpieczne przy wyścigu, bo każdy klient liczy identyczny wynik.
       const brokenTie = [...result.tiedForCutoff].sort((a, b) => a - b).slice(0, result.slotsAvailable);
       finalSurvivors = [...result.survivors, ...brokenTie];
     }
