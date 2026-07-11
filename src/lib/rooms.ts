@@ -4,6 +4,8 @@
  * danych: work/active/Tumolec.md w vaulcie Obsidian. */
 
 import {
+  arrayRemove,
+  arrayUnion,
   collection,
   doc,
   DocumentData,
@@ -223,5 +225,61 @@ export async function triggerCoinflip(roomCode: string): Promise<"heads" | "tail
 export function subscribeToCoinflip(roomCode: string, onChange: (coinflip: CoinflipState | null) => void) {
   return onSnapshot(doc(db, "rooms", roomCode, "session", "state"), (snap) => {
     onChange(snap.exists() ? ((snap.data().coinflip as CoinflipState | undefined) ?? null) : null);
+  });
+}
+
+// ── Koło fortuny ──────────────────────────────────────────────────────────
+// Wszystko pod `rooms/{roomCode}/session/state`, pole `wheel` -- ten sam
+// dokument ma też pole `coinflip` (rzut monetą, inny agent). Zawsze `setDoc`
+// z `{ merge: true }` i zagnieżdżonym obiektem `{ wheel: {...} }`, NIGDY
+// `setDoc` całego dokumentu -- merge scala tylko podane pola (nawet
+// zagnieżdżone), więc `coinflip` nigdy nie zostanie nadpisany.
+
+export type WheelState = {
+  entries: string[];
+  spinning: boolean;
+  winner: string | null;
+  extraTurns: number | null;
+};
+
+function wheelStateRef(roomCode: string) {
+  return doc(db, "rooms", roomCode, "session", "state");
+}
+
+async function mergeWheel(roomCode: string, wheel: Record<string, unknown>) {
+  await setDoc(wheelStateRef(roomCode), { wheel }, { merge: true });
+}
+
+export async function addWheelEntry(roomCode: string, entry: string) {
+  await mergeWheel(roomCode, { entries: arrayUnion(entry) });
+}
+
+export async function removeWheelEntry(roomCode: string, entry: string) {
+  await mergeWheel(roomCode, { entries: arrayRemove(entry) });
+}
+
+/** Losuje zwycięzcę spośród aktualnych `entries` po stronie klienta, który
+ * kliknął "Losuj", i zapisuje wynik + liczbę pełnych obrotów -- reszta
+ * klientów odtwarza identyczną animację licząc kąt z tych samych danych
+ * (zob. WheelCanvas), więc koło kręci się tak samo u wszystkich. */
+export async function triggerWheelSpin(roomCode: string) {
+  const snap = await getDoc(wheelStateRef(roomCode));
+  const entries: string[] = (snap.exists() && (snap.data().wheel as WheelState | undefined)?.entries) || [];
+  if (entries.length === 0) return;
+
+  const winner = entries[Math.floor(Math.random() * entries.length)];
+  const extraTurns = 4 + Math.floor(Math.random() * 3); // 4-6 pełnych obrotów, tylko dla ładniejszej animacji
+  await mergeWheel(roomCode, { winner, extraTurns, spinning: true, triggeredAt: serverTimestamp() });
+}
+
+/** Wywoływane przez WheelCanvas po zakończeniu lokalnej animacji obrotu --
+ * może to zrobić kilku klientów naraz, nieszkodliwe (ten sam zapis `false`). */
+export async function finishWheelSpin(roomCode: string) {
+  await mergeWheel(roomCode, { spinning: false });
+}
+
+export function subscribeToWheel(roomCode: string, onChange: (wheel: WheelState | null) => void) {
+  return onSnapshot(wheelStateRef(roomCode), (snap) => {
+    onChange(snap.exists() ? ((snap.data().wheel as WheelState | undefined) ?? null) : null);
   });
 }
