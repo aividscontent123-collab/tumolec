@@ -15,7 +15,8 @@ service cloud.firestore {
       allow create: if request.resource.data.name is string
         && request.resource.data.name.size() <= 60;
       allow update: if request.resource.data.diff(resource.data)
-        .affectedKeys().hasOnly(['activeFeature']);
+        .affectedKeys().hasOnly(['activeFeature'])
+        && request.resource.data.activeFeature in ['swipe', 'coinflip', 'wheel'];
 
       match /participants/{participantId} {
         allow read: if true;
@@ -37,7 +38,18 @@ service cloud.firestore {
 
       match /eliminationRounds/{roundId} {
         allow read: if true;
-        allow create, update: if true; // logika rund liczona po stronie klienta (Faza 1)
+        // Logika rund liczona po stronie klienta (Faza 1, brak logowania) --
+        // nie da się zweryfikować KTO pisze, ale kształt zapisu jest pilnowany,
+        // żeby jeden zepsuty/złośliwy klient nie mógł nadpisać rundy dowolnymi
+        // danymi (np. wymusić zwycięzcę bez przejścia przez swipes).
+        allow create: if request.resource.data.roundNumber is number
+          && request.resource.data.poolAtStart is list
+          && request.resource.data.status == 'voting';
+        allow update: if request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly(['status', 'survivors'])
+          && request.resource.data.status in ['voting', 'finished']
+          && (request.resource.data.survivors is list || request.resource.data.survivors == null);
+        allow delete: if false;
 
         match /swipes/{swipeId} {
           allow read: if true;
@@ -62,9 +74,24 @@ service cloud.firestore {
       // nie dane użytkownika, więc niski koszt błędu przy złym zapisie. Upgrade
       // path jeśli kiedyś potrzebny ściślejszy zapis tylko-serwerowy: Admin SDK
       // w API routes + `allow write: if false` tutaj.
-      allow write: if request.resource.data.name is string
+      // `hasOnly` zamyka pole na dokładnie te klucze -- bez tego dowolny
+      // nieautoryzowany klient mógłby dopisać/podmienić headerImageUrl,
+      // steamUrl czy shortDescription bez żadnej walidacji typu.
+      allow write: if request.resource.data.keys().hasOnly([
+          'name', 'headerImageUrl', 'steamUrl', 'shortDescription',
+          'reviewSummary', 'reviewScorePercent', 'tags',
+          'minRequirements', 'recRequirements', 'cachedAt',
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.headerImageUrl is string
+        && request.resource.data.steamUrl is string
+        && request.resource.data.shortDescription is string
+        && request.resource.data.reviewSummary is string
         && request.resource.data.reviewScorePercent is number
-        && request.resource.data.tags is list;
+        && request.resource.data.tags is list
+        && request.resource.data.minRequirements is string
+        && request.resource.data.recRequirements is string
+        && request.resource.data.cachedAt is number;
     }
   }
 }
