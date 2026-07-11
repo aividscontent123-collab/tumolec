@@ -88,17 +88,28 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
-  /* Tumolec design tokens — wariant 1a "Fiolet elektryczny", zob. work/active/Tumolec.md w vaulcie */
+  /* Tumolec design tokens — wariant 1a "Fiolet elektryczny", zob. work/active/Tumolec.md w vaulcie.
+     Wspólne dla obu motywów (ten sam akcent na jasnym i ciemnym tle) --
+     tylko wartości zależne od tła (tekst pomocniczy, gradient) różnią się
+     między :root (jasny, domyślny bez klasy .dark) i .dark poniżej. */
   --font-heading: var(--font-space-grotesk);
+  --accent-brand: #8b5cf6;
+  --accent-brand-soft: rgba(139, 92, 246, 0.22);
+  --text-secondary: oklch(0.44 0.02 265);
+  --pass: oklch(0.55 0.19 25);
+  --rating: oklch(0.5 0.15 150);
+  --radius-card: 26px;
+  --gradient-top: oklch(0.99 0.005 265);
+  --gradient-bottom: oklch(0.95 0.01 265);
 }
 
 .dark {
-  --accent-brand: #8b5cf6;
   --accent-brand-soft: rgba(139, 92, 246, 0.35);
   --text-secondary: oklch(0.62 0.02 265);
   --pass: oklch(0.65 0.16 25);
   --rating: oklch(0.85 0.12 150);
-  --radius-card: 26px;
+  --gradient-top: oklch(0.14 0.025 270);
+  --gradient-bottom: oklch(0.1 0.02 268);
 
   --background: oklch(0.14 0.025 270);
   --foreground: oklch(0.97 0.01 265);
@@ -147,28 +158,14 @@
 
 @layer utilities {
   .bg-app-gradient {
-    background: linear-gradient(180deg, oklch(0.14 0.025 270) 0%, oklch(0.1 0.02 268) 100%);
+    background: linear-gradient(180deg, var(--gradient-top) 0%, var(--gradient-bottom) 100%);
   }
 }
 
 @layer components {
-  /* Karta swipe — Tumolec design handoff wariant 1a. Cień/hover to złożone,
-     wielowarstwowe wartości nie do wyrażenia czysto utility-klasami Tailwind. */
-  .swipe-card {
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-    transition:
-      transform 0.35s ease,
-      box-shadow 0.35s ease;
-  }
-  .swipe-card:hover {
-    transform: rotate(7deg) translateX(14px) translateY(-6px);
-    box-shadow:
-      0 0 0 3px var(--accent-brand),
-      0 0 60px 10px var(--accent-brand-soft),
-      0 25px 50px rgba(0, 0, 0, 0.55);
-    cursor: grabbing;
-  }
-
+  /* Poświata/cień karty swipe to teraz motion value w SwipeCard.tsx (zależny
+     od odległości przeciągnięcia), nie CSS -- tu zostaje tylko scrim gradientu
+     pod tytułem, wspólny dla obu motywów (karta ze zdjęciem zawsze ciemna). */
   .swipe-card-scrim {
     background: linear-gradient(
       0deg,

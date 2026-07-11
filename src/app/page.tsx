@@ -54,20 +54,16 @@ export default function Home() {
           Wybierzcie grę na wieczór — razem, przez swipe.
         </p>
 
-        <div
-          className="mb-6 flex rounded-full p-1"
-          style={{ backgroundColor: "oklch(0.2 0.02 265)" }}
-        >
+        <div className="bg-card mb-6 flex rounded-full p-1">
           {(["create", "join"] as const).map((m) => (
             <button
               key={m}
               type="button"
               onClick={() => setMode(m)}
-              className="flex-1 rounded-full py-2 text-sm font-semibold transition-colors"
-              style={
+              className={
                 mode === m
-                  ? { backgroundColor: "var(--accent-brand)", color: "white" }
-                  : { color: "var(--text-secondary)" }
+                  ? "bg-accent-brand flex-1 rounded-full py-2 text-sm font-semibold text-white transition-colors"
+                  : "text-text-secondary flex-1 rounded-full py-2 text-sm font-semibold transition-colors"
               }
             >
               {m === "create" ? "Stwórz pokój" : "Dołącz do pokoju"}
@@ -83,8 +79,7 @@ export default function Home() {
                 value={roomName}
                 onChange={(e) => setRoomName(e.target.value)}
                 maxLength={60}
-                className="rounded-xl border px-4 py-3 text-foreground"
-                style={{ backgroundColor: "oklch(0.2 0.02 265)", borderColor: "oklch(0.3 0.02 265)" }}
+                className="bg-card border-border rounded-xl border px-4 py-3 text-foreground"
               />
             </label>
           ) : (
@@ -95,8 +90,7 @@ export default function Home() {
                 onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                 maxLength={6}
                 placeholder="np. K7M2QP"
-                className="rounded-xl border px-4 py-3 text-center font-mono text-lg tracking-[0.3em] text-foreground uppercase"
-                style={{ backgroundColor: "oklch(0.2 0.02 265)", borderColor: "oklch(0.3 0.02 265)" }}
+                className="bg-card border-border rounded-xl border px-4 py-3 text-center font-mono text-lg tracking-[0.3em] text-foreground uppercase"
               />
             </label>
           )}
@@ -107,18 +101,16 @@ export default function Home() {
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               maxLength={24}
-              className="rounded-xl border px-4 py-3 text-foreground"
-              style={{ backgroundColor: "oklch(0.2 0.02 265)", borderColor: "oklch(0.3 0.02 265)" }}
+              className="bg-card border-border rounded-xl border px-4 py-3 text-foreground"
             />
           </label>
 
-          {error && <p style={{ color: "var(--pass)" }} className="text-sm">{error}</p>}
+          {error && <p className="text-pass text-sm">{error}</p>}
 
           <button
             type="submit"
             disabled={busy}
-            className="mt-2 rounded-full py-3 text-sm font-bold text-white disabled:opacity-50"
-            style={{ backgroundColor: "var(--accent-brand)", boxShadow: "0 8px 24px var(--accent-brand-soft)" }}
+            className="bg-accent-brand mt-2 rounded-full py-3 text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)] disabled:opacity-50"
           >
             {busy ? "Chwila…" : mode === "create" ? "Stwórz pokój" : "Dołącz"}
           </button>

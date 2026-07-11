@@ -18,8 +18,7 @@ export function GamePoolList({ roomCode, games }: { roomCode: string; games: Poo
       {games.map((game) => (
         <li
           key={game.steamAppId}
-          className="flex items-center gap-3 rounded-xl border p-3"
-          style={{ backgroundColor: "oklch(0.18 0.02 265)", borderColor: "oklch(0.28 0.02 265)" }}
+          className="bg-card border-border flex items-center gap-3 rounded-xl border p-3"
         >
           {game.coverImageUrl && (
             <Image
@@ -32,7 +31,7 @@ export function GamePoolList({ roomCode, games }: { roomCode: string; games: Poo
           )}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-foreground">{game.title}</p>
-            <p style={{ color: "var(--rating)" }} className="text-xs">
+            <p className="text-rating text-xs">
               {game.reviewScorePercent}% {game.reviewSummary}
             </p>
           </div>
@@ -40,16 +39,14 @@ export function GamePoolList({ roomCode, games }: { roomCode: string; games: Poo
             <button
               type="button"
               onClick={() => setGameStatus(roomCode, game.steamAppId, "played")}
-              className="rounded-full px-3 py-1.5 text-xs font-semibold"
-              style={{ backgroundColor: "oklch(0.24 0.02 265)", color: "var(--text-secondary)" }}
+              className="bg-secondary text-text-secondary rounded-full px-3 py-1.5 text-xs font-semibold"
             >
               Zagrane
             </button>
             <button
               type="button"
               onClick={() => setGameStatus(roomCode, game.steamAppId, "removed")}
-              className="rounded-full px-3 py-1.5 text-xs font-semibold"
-              style={{ backgroundColor: "oklch(0.24 0.02 265)", color: "var(--pass)" }}
+              className="bg-secondary text-pass rounded-full px-3 py-1.5 text-xs font-semibold"
             >
               Usuń
             </button>
