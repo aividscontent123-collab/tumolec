@@ -74,7 +74,11 @@ export function subscribeToParticipants(roomCode: string, onChange: (p: Particip
   });
 }
 
-export type PoolGame = SwipeGame & { status: "active" | "played" | "removed"; addedBy: string };
+export type PoolGame = SwipeGame & {
+  status: "active" | "played" | "removed";
+  addedBy: string;
+  playedAt: number | null;
+};
 
 function toPoolGame(gameDoc: QueryDocumentSnapshot<DocumentData>, cache: DocumentData | undefined): PoolGame {
   const g = gameDoc.data();
@@ -82,6 +86,7 @@ function toPoolGame(gameDoc: QueryDocumentSnapshot<DocumentData>, cache: Documen
     steamAppId: g.steamAppId,
     addedBy: g.addedBy,
     status: g.status,
+    playedAt: g.playedAt?.toMillis?.() ?? null,
     title: cache?.name ?? "…",
     coverImageUrl: cache?.headerImageUrl,
     tags: cache?.tags ?? [],
