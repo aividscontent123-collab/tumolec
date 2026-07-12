@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createRoom, joinRoom, roomExists } from "@/lib/rooms";
 
 export default function Home() {
@@ -115,6 +116,13 @@ export default function Home() {
             {busy ? "Chwila…" : mode === "create" ? "Stwórz pokój" : "Dołącz"}
           </button>
         </form>
+
+        <Link
+          href="/packages"
+          className="text-text-secondary mt-6 block text-center text-sm underline"
+        >
+          Zapisane paczki gier
+        </Link>
       </div>
     </main>
   );
