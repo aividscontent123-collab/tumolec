@@ -45,7 +45,10 @@ export function WheelCanvas({
       : 0;
 
   return (
-    <div className="relative mx-auto" style={{ width: SIZE, height: SIZE }}>
+    <div
+      className="relative mx-auto aspect-square w-full"
+      style={{ maxWidth: "min(88vw, 380px)" }}
+    >
       <div
         className="absolute left-1/2 -top-[6px] z-10 -translate-x-1/2"
         style={{
@@ -58,8 +61,8 @@ export function WheelCanvas({
       />
       <motion.svg
         key={winner ? `${winner}-${extraTurns}` : "idle"}
-        width={SIZE}
-        height={SIZE}
+        width="100%"
+        height="100%"
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         initial={{ rotate: 0 }}
         animate={{ rotate: targetRotation }}
