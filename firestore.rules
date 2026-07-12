@@ -102,7 +102,8 @@ service cloud.firestore {
       allow create: if request.resource.data.keys().hasOnly(['name', 'createdAt', 'gameIds'])
         && request.resource.data.name is string
         && request.resource.data.name.size() <= 60
-        && request.resource.data.gameIds is list;
+        && request.resource.data.gameIds is list
+        && request.resource.data.gameIds.size() <= 200;
       allow update, delete: if false;
     }
   }
