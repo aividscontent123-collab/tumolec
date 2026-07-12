@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import QRCode from "qrcode";
 import { subscribeToParticipants, subscribeToRoom, joinRoom, type Participant } from "@/lib/rooms";
 import { useParticipant } from "@/lib/useParticipant";
 
@@ -13,6 +14,36 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [joinNickname, setJoinNickname] = useState("");
   const [joining, setJoining] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    // Kod QR celowo koduje publiczny URL produkcyjny (nie window.location.origin) --
+    // skanuje go inny telefon, który nie dosięgnie localhosta ani preview-URL.
+    QRCode.toDataURL(`https://tumolec.vercel.app/room/${roomCode}`, { margin: 1, width: 200 })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(null));
+  }, [roomCode]);
+
+  async function handleShare() {
+    const url = `https://tumolec.vercel.app/room/${roomCode}`;
+    if (navigator.share) {
+      // Odrzucenie (użytkownik anuluje arkusz share) jest nieszkodliwe -- ignorujemy.
+      try {
+        await navigator.share({ title: roomName ?? "Tumolec", url });
+      } catch {
+        /* anulowane przez użytkownika */
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard niedostępny/odrzucony -- nic więcej nie da się zrobić */
+    }
+  }
 
   useEffect(() => {
     const unsubRoom = subscribeToRoom(roomCode, (data) => setRoomName(data?.name ?? null));
@@ -84,6 +115,14 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
         KOD POKOJU: {roomCode}
       </p>
 
+      {qrDataUrl && (
+        <img
+          src={qrDataUrl}
+          alt={`Kod QR pokoju ${roomCode}`}
+          className="mx-auto mb-4 h-[160px] w-[160px] rounded-xl bg-white p-2"
+        />
+      )}
+
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         <div className="bg-card border-border flex w-full max-w-xs flex-col gap-2 rounded-2xl border p-4">
           {participants.map((p, i) => (
@@ -103,6 +142,13 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
       </div>
 
       <div className="flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={handleShare}
+          className="bg-secondary rounded-full py-3 text-center text-sm font-bold text-foreground"
+        >
+          {copied ? "Skopiowano link!" : "Udostępnij pokój"}
+        </button>
         <Link
           href={`/room/${roomCode}/pool`}
           className="bg-accent-brand rounded-full py-3 text-center text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)]"
