@@ -124,6 +124,12 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
           </Link>
         </div>
         <Link
+          href={`/room/${roomCode}/plinko`}
+          className="bg-secondary rounded-full py-3 text-center text-sm font-bold text-foreground"
+        >
+          Plinko
+        </Link>
+        <Link
           href={`/room/${roomCode}/history`}
           className="bg-secondary rounded-full py-3 text-center text-sm font-bold text-foreground"
         >
