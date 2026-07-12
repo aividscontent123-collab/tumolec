@@ -8,6 +8,7 @@ import {
   setPlinkoAssignments,
   triggerPlinkoDrop,
   publishPlinkoWinner,
+  resetStuckPlinkoDrop,
   setGameStatus,
   type PoolGame,
   type PlinkoState,
@@ -45,6 +46,22 @@ export function PlinkoScreen({ roomCode }: { roomCode: string }) {
       setPlinkoAssignments(roomCode, activeGames.map((g) => g.steamAppId));
     }
   }, [participantId, roomCode, plinko.assignments.length, activeGames]);
+
+  // Watchdog: jeśli klient wyzwalający zamknął kartę w trakcie animacji, "dropping"
+  // zostałby zablokowany na zawsze (tylko on ma prawo opublikować wynik). KAŻDY
+  // klient patrzący na ten ekran odblokowuje po 15s od triggeredAt -- fizyka
+  // Matter.js osiada w kilka sekund, więc to bezpieczny margines, nie realny wyścig
+  // z prawidłowym zakończeniem zrzutu.
+  useEffect(() => {
+    if (!plinko.dropping || !plinko.triggeredAt) return;
+    const remaining = 15_000 - (Date.now() - plinko.triggeredAt.toMillis());
+    if (remaining <= 0) {
+      resetStuckPlinkoDrop(roomCode);
+      return;
+    }
+    const timer = setTimeout(() => resetStuckPlinkoDrop(roomCode), remaining);
+    return () => clearTimeout(timer);
+  }, [roomCode, plinko.dropping, plinko.triggeredAt]);
 
   if (!participantId) {
     return (

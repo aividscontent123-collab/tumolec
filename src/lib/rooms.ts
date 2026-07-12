@@ -328,6 +328,14 @@ export async function publishPlinkoWinner(roomCode: string, winnerSlot: number) 
   await mergePlinko(roomCode, { winnerSlot, dropping: false });
 }
 
+/** Odblokowuje utknięty stan "dropping" -- np. gdy klient wyzwalający zamknął
+ * kartę w trakcie animacji i nigdy nie zdążył opublikować wyniku. Może
+ * wywołać KAŻDY klient (idempotentne, watchdog w PlinkoScreen po timeoucie
+ * od triggeredAt), nie tylko wyzwalający. */
+export async function resetStuckPlinkoDrop(roomCode: string) {
+  await mergePlinko(roomCode, { dropping: false, dropSeed: null });
+}
+
 export function subscribeToPlinko(roomCode: string, onChange: (plinko: PlinkoState | null) => void) {
   return onSnapshot(plinkoStateRef(roomCode), (snap) => {
     onChange(snap.exists() ? ((snap.data().plinko as PlinkoState | undefined) ?? null) : null);
