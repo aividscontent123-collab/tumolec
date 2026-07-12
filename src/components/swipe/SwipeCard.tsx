@@ -38,12 +38,19 @@ export function SwipeCard({
     ],
   );
 
-  // Start od pionowego assetu (ostry na wysokiej karcie); gdy 404 (nie każdy
-  // appid ma library art), onError przełącza na poziomy header (coverImageUrl).
-  // Trzeci poziom (brak obrazka w ogóle) obsługuje istniejący placeholder niżej.
-  const [imgSrc, setImgSrc] = useState<string | undefined>(
-    game.coverImageUrl ? steamLibraryPortraitUrl(game.steamAppId) : undefined,
-  );
+  // Liczone świeżo z propsa co render (nie w useState) -- game.coverImageUrl
+  // potrafi doładować się asynchronicznie już PO zamontowaniu karty (osobny
+  // listener Firestore na steam_cache), a karta nie remountuje się przy tej
+  // zmianie (key w SwipeScreen to steamAppId, nie coverImageUrl). Trzymanie
+  // tylko URL-a w stanie zamroziłoby kartę na placeholderze na stałe.
+  // Stan trzyma wyłącznie "czy pionowy portret zawiódł" dla BIEŻĄCEGO
+  // steamAppId -- reset przy zmianie gry następuje przez remount (key).
+  const [portraitFailed, setPortraitFailed] = useState(false);
+  const imgSrc = game.coverImageUrl
+    ? portraitFailed
+      ? game.coverImageUrl
+      : steamLibraryPortraitUrl(game.steamAppId)
+    : undefined;
 
   const bind = useDrag(({ movement: [mx, my], velocity: [vx], last }) => {
     if (!last) {
@@ -81,8 +88,8 @@ export function SwipeCard({
             sizes="(max-width: 500px) 100vw, 500px"
             draggable={false}
             onError={() => {
-              // Portret nie istnieje -> spadamy na poziomy header raz.
-              if (imgSrc !== game.coverImageUrl) setImgSrc(game.coverImageUrl);
+              // Portret nie istnieje -> spadamy na poziomy header raz (na steamAppId).
+              if (!portraitFailed) setPortraitFailed(true);
             }}
           />
         ) : (
