@@ -362,3 +362,56 @@ export async function addGamesToPool(roomCode: string, steamAppIds: number[], ad
     await addGameToPool(roomCode, steamAppId, addedBy);
   }
 }
+
+// ── Plinko ────────────────────────────────────────────────────────────────
+// Pod `rooms/{roomCode}/session/state`, pole `plinko` -- TEN SAM dokument co
+// coinflip/wheel. Zawsze `setDoc` z `{ merge: true }` i zagnieżdżonym `{ plinko }`,
+// NIGDY zapis całego dokumentu, żeby nie nadpisać coinflip/wheel.
+
+export type PlinkoState = {
+  assignments: number[]; // steamAppId per slot (index = slot); środek listy = środkowe sloty
+  dropSeed: number | null;
+  dropping: boolean;
+  winnerSlot: number | null; // AUTORYTATYWNY wynik od klienta wyzwalającego
+  triggeredAt: Timestamp | null;
+};
+
+function plinkoStateRef(roomCode: string) {
+  return doc(db, "rooms", roomCode, "session", "state");
+}
+
+async function mergePlinko(roomCode: string, plinko: Record<string, unknown>) {
+  await setDoc(plinkoStateRef(roomCode), { plinko }, { merge: true });
+}
+
+/** Ustawia całą tablicę przypisań slotów (zastępuje, nie scala elementów). */
+export async function setPlinkoAssignments(roomCode: string, assignments: number[]) {
+  await mergePlinko(roomCode, { assignments });
+}
+
+/** Klient klikający "Zrzuć" publikuje parametry startowe; wszyscy odgrywają
+ * lokalnie tę samą symulację z tego seeda. Reset winnerSlot na null czyści
+ * poprzedni zrzut. */
+export async function triggerPlinkoDrop(roomCode: string, dropSeed: number) {
+  await mergePlinko(roomCode, { dropSeed, dropping: true, winnerSlot: null, triggeredAt: serverTimestamp() });
+}
+
+/** Wywoływane WYŁĄCZNIE przez klienta wyzwalającego po zakończeniu jego
+ * symulacji -- winnerSlot jest autorytatywny dla wyboru gry. */
+export async function publishPlinkoWinner(roomCode: string, winnerSlot: number) {
+  await mergePlinko(roomCode, { winnerSlot, dropping: false });
+}
+
+/** Odblokowuje utknięty stan "dropping" -- np. gdy klient wyzwalający zamknął
+ * kartę w trakcie animacji i nigdy nie zdążył opublikować wyniku. Może
+ * wywołać KAŻDY klient (idempotentne, watchdog w PlinkoScreen po timeoucie
+ * od triggeredAt), nie tylko wyzwalający. */
+export async function resetStuckPlinkoDrop(roomCode: string) {
+  await mergePlinko(roomCode, { dropping: false, dropSeed: null });
+}
+
+export function subscribeToPlinko(roomCode: string, onChange: (plinko: PlinkoState | null) => void) {
+  return onSnapshot(plinkoStateRef(roomCode), (snap) => {
+    onChange(snap.exists() ? ((snap.data().plinko as PlinkoState | undefined) ?? null) : null);
+  });
+}
