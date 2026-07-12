@@ -4,6 +4,7 @@
  * danych: work/active/Tumolec.md w vaulcie Obsidian. */
 
 import {
+  addDoc,
   arrayRemove,
   arrayUnion,
   collection,
@@ -325,4 +326,39 @@ export function subscribeToWheel(roomCode: string, onChange: (wheel: WheelState 
   return onSnapshot(wheelStateRef(roomCode), (snap) => {
     onChange(snap.exists() ? ((snap.data().wheel as WheelState | undefined) ?? null) : null);
   });
+}
+
+// ── Paczki gier ───────────────────────────────────────────────────────────
+// Globalna, wspólna kolekcja top-level `packages/{packageId}` (bez scope'owania
+// per pokój -- jedna ekipa znajomych). Niezmienne po zapisaniu (v1): brak update/delete.
+
+export type GamePackage = { id: string; name: string; gameCount: number; gameIds: number[] };
+
+export async function createPackage(name: string, gameIds: number[]): Promise<void> {
+  await addDoc(collection(db, "packages"), { name, gameIds, createdAt: serverTimestamp() });
+}
+
+export function subscribeToPackages(onChange: (packages: GamePackage[]) => void) {
+  return onSnapshot(collection(db, "packages"), (snap) => {
+    onChange(
+      snap.docs.map((d) => {
+        const data = d.data() as { name: string; gameIds: number[] };
+        return { id: d.id, name: data.name, gameCount: data.gameIds.length, gameIds: data.gameIds };
+      }),
+    );
+  });
+}
+
+/** Dodaje wskazane gry do puli pokoju jako 'active'. Każda gra musi mieć wpis
+ * w steam_cache (paczka powstaje z już-dodanych gier, więc powinien istnieć) --
+ * brak cache pomijamy z cichym logiem zamiast wywalać całą operację. */
+export async function addGamesToPool(roomCode: string, steamAppIds: number[], addedBy: string) {
+  for (const steamAppId of steamAppIds) {
+    const cacheSnap = await getDoc(doc(db, "steam_cache", String(steamAppId)));
+    if (!cacheSnap.exists()) {
+      console.warn(`Pomijam grę ${steamAppId}: brak wpisu w steam_cache.`);
+      continue;
+    }
+    await addGameToPool(roomCode, steamAppId, addedBy);
+  }
 }
