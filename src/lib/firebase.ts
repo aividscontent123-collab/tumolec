@@ -1,5 +1,5 @@
 import { getApps, initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore } from "firebase/firestore";
 
 // Public by design — Firebase client config is not a secret, access is
 // enforced by Firestore Security Rules (see firestore.rules), not by hiding
@@ -13,6 +13,15 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app = getApps().length ? getApps()[0]! : initializeApp(firebaseConfig);
+const existingApp = getApps()[0];
+const app = existingApp ?? initializeApp(firebaseConfig);
 
-export const db = getFirestore(app);
+// experimentalAutoDetectLongPolling: streaming WebChannel bywa buforowany przez
+// sieci desktopowe/proxy/ad-blockery -- wtedy pierwszy snapshot dochodzi, ale
+// kolejne pushe live już nie (przyczyna: znajomy dołącza, desktop go nie widzi).
+// Auto-detect przełącza na long-polling tylko gdy streaming zawiedzie -- backward
+// compatible. initializeFirestore rzuca przy drugim wywołaniu na tym samym app
+// (HMR w devie), więc inicjalizujemy tylko dla świeżo tworzonego app.
+export const db = existingApp
+  ? getFirestore(app)
+  : initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
