@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildHistory, pluralizeGry } from "./history";
-import type { PoolGame } from "@/lib/rooms";
+import { buildHistory, pluralizeGry, sessionBreakdownForGame } from "./history";
+import type { PoolGame, RoundDoc } from "@/lib/rooms";
 
 /** Minimalne fixture -- buildHistory czyta tylko status/playedAt/steamAppId,
  * resztę pól SwipeGame wypełniamy zaślepkami. */
@@ -72,5 +72,40 @@ describe("pluralizeGry", () => {
     [121, "grę"],
   ])("pluralizeGry(%i) === %s", (n, expected) => {
     expect(pluralizeGry(n)).toBe(expected);
+  });
+});
+
+function round(partial: Partial<RoundDoc> & Pick<RoundDoc, "sessionId" | "roundNumber">): RoundDoc {
+  return {
+    poolAtStart: [],
+    status: "finished",
+    survivors: null,
+    ...partial,
+  };
+}
+
+describe("sessionBreakdownForGame", () => {
+  const rounds: RoundDoc[] = [
+    round({ sessionId: "s1", roundNumber: 1, poolAtStart: [1, 2, 3, 4], survivors: [1, 2] }),
+    round({ sessionId: "s1", roundNumber: 2, poolAtStart: [1, 2], survivors: [1] }),
+    round({ sessionId: "s2", roundNumber: 1, poolAtStart: [5, 6], survivors: [5] }),
+  ];
+
+  it("returns the full session breakdown for the winning game, ordered by round", () => {
+    expect(sessionBreakdownForGame(rounds, 1)).toEqual([
+      { roundNumber: 1, gamesIn: 4, survivorsCount: 2 },
+      { roundNumber: 2, gamesIn: 2, survivorsCount: 1 },
+    ]);
+  });
+
+  it("isolates a different session's winner without mixing rounds", () => {
+    expect(sessionBreakdownForGame(rounds, 5)).toEqual([
+      { roundNumber: 1, gamesIn: 2, survivorsCount: 1 },
+    ]);
+  });
+
+  it("returns empty when the game was never a sole survivor (e.g. eliminated, or won via coinflip)", () => {
+    expect(sessionBreakdownForGame(rounds, 2)).toEqual([]);
+    expect(sessionBreakdownForGame(rounds, 99)).toEqual([]);
   });
 });
