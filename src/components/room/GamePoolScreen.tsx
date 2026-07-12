@@ -6,6 +6,7 @@ import { subscribeToGamePool, type PoolGame } from "@/lib/rooms";
 import { useParticipant } from "@/lib/useParticipant";
 import { AddGameForm } from "@/components/room/AddGameForm";
 import { GamePoolList } from "@/components/room/GamePoolList";
+import { PackageControls } from "@/components/room/PackageControls";
 import { cn } from "@/lib/utils";
 
 export function GamePoolScreen({ roomCode }: { roomCode: string }) {
@@ -40,6 +41,8 @@ export function GamePoolScreen({ roomCode }: { roomCode: string }) {
       </div>
 
       <AddGameForm roomCode={roomCode} participantId={participantId} />
+
+      <PackageControls roomCode={roomCode} participantId={participantId} games={games} />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <GamePoolList roomCode={roomCode} games={activeGames} />
