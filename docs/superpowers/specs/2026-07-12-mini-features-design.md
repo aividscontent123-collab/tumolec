@@ -1,6 +1,6 @@
-# Tumolec — cztery drobne funkcje (2026-07-12)
+# Tumolec — pięć drobnych funkcji (2026-07-12)
 
-Cztery niezależne kawałki, każdy budowany i mergowany osobno. Kontekst pełny: `work/active/Tumolec.md` w vaulcie Obsidian (`C:\Users\miros\Desktop\RUFLO`).
+Pięć niezależnych kawałków, każdy budowany i mergowany osobno. Kontekst pełny: `work/active/Tumolec.md` w vaulcie Obsidian (`C:\Users\miros\Desktop\RUFLO`).
 
 ## 1. QR kod pokoju
 
@@ -68,9 +68,43 @@ match /packages/{packageId} {
 
 **Testy:** funkcja "które gry z paczki są nowe względem obecnej puli" (czysta logika, filter po steamAppId) — Vitest.
 
+## 5. Plinko — nowa mini-gra wyboru gry (alternatywa dla swipe)
+
+**Cel:** dosłowna gra Plinko — kulka spada przez planszę kołków i ląduje w slocie; gra przypisana do zwycięskiego slotu zostaje wybrana do grania. Osobny byt jak `coinflip`/`wheel` (nowa zakładka `/room/[code]/plinko`), alternatywa dla eliminacji przez swipe.
+
+**Potwierdzone z użytkownikiem:**
+- **Prawdziwa symulacja fizyki** (nie ustalony-z-góry-wynik-plus-animacja jak w coinflip/wheel) — silnik `Matter.js` (2D, darmowy, MIT).
+- **Naturalna fizyka Plinko** — środkowe sloty mają wyższą szansę niż brzegowe (tak jak w prawdziwej grze), to nie błąd.
+- **Jasna matryca przypisania** — ekran ustawienia przed zrzutem, gdzie uczestnicy przypisują aktywne gry z puli do konkretnych slotów, z widoczną etykietą przybliżonej szansy każdego slotu.
+
+**Model szans slotów (matematyka, nie zgadywanie):** dla N aktywnych gier plansza ma **N-1 rzędów kołków** (klasyczny układ Plinko: N slotów u dołu = N-1 rzędów +1). Przy założeniu ~50/50 odbicia w lewo/prawo na każdym rzędzie, szansa wylądowania w slocie k (indeksowane od 0) to rozkład dwumianowy: `C(N-1, k) / 2^(N-1)`. Czysta funkcja (np. `lib/plinko.ts: slotProbabilities(n: number): number[]`), testowana Vitest — używana WYŁĄCZNIE do wyświetlenia etykiet szansy na ekranie ustawienia (np. "Duża szansa" w środku, "Mała szansa" na brzegach), nie do samego losowania wyniku (o tym decyduje realna symulacja fizyki).
+
+**Ekran ustawienia (ta sama zakładka, przed zrzutem):**
+- Lista aktywnych gier z puli (min. 2, ten sam warunek co swipe/koło fortuny).
+- Reorderowalna (drag albo przyciski góra/dół, wzorzec z `WheelControls.tsx`) — kolejność na liście = przypisanie do slotów planszy, środek listy = środkowe sloty.
+- Etykieta przybliżonej szansy przy każdej pozycji, policzona z `slotProbabilities(n)`.
+
+**Zrzut kulki:**
+- Plansza kołków wygenerowana proceduralnie dla N-1 rzędów, dopasowana do liczby slotów.
+- Silnik `Matter.js` symuluje realny spadek kulki z odbiciami od kołków, renderowany na `<canvas>`.
+- Przycisk "Zrzuć" (analogicznie do "Losuj" w kole fortuny) dostępny dla któregokolwiek uczestnika.
+
+**Synchronizacja między uczestnikami (ten sam wzorzec co `triggerWheelSpin`/`triggerCoinflip` w `lib/rooms.ts`):**
+- Klient klikający "Zrzuć" generuje parametry startowe (np. początkowa pozycja X kulki, ewentualny seed) i publikuje je do `rooms/{code}/session/state` (pole `plinko`, ten sam dokument co `coinflip`/`wheel`, zawsze `{ merge: true }` na własnym polu — nigdy nie nadpisuje sąsiednich pól).
+- Wszyscy klienci subskrybujący ten dokument uruchamiają lokalnie identyczną symulację Matter.js (ten sam silnik, ten sam fixed timestep, te same parametry startowe) — powinny dać identyczny wynik.
+- **Zabezpieczenie na rozjazd wizualny:** klient, który wyzwolił zrzut, po zakończeniu SWOJEJ symulacji publikuje też ostateczny wynik (indeks zwycięskiego slotu) do tego samego dokumentu. To pole jest **autorytatywne** dla tego, która gra zostaje oznaczona jako wybrana (`setGameStatus(..., "played")`) — nawet jeśli czyjaś lokalna animacja fizyki minimalnie się różni (inna klatka/timing), wynik gry (którą grę gramy) zawsze pochodzi z opublikowanej wartości, nie z lokalnej symulacji każdego klienta z osobna.
+
+**Zmiany w `firestore.rules`:** `session/state` już ma `allow write: if true` (niski risk, grupa 2-4 znajomych, ten sam dokument co coinflip/wheel) — pole `plinko` nie wymaga nowej reguły.
+
+**Nowa zależność:** `matter-js` (+ `@types/matter-js`), $0 kosztu, MIT license.
+
+**Testy:** `slotProbabilities()` — Vitest, kilka przypadków (n=2, n=3, n=5, suma prawdopodobieństw = 1, symetria rozkładu).
+
 ## Poza zakresem (świadomie, YAGNI)
 
 - Edycja istniejącej paczki po zapisaniu.
 - Usuwanie paczek.
 - Scopowanie paczek per pokój/grupa (globalna lista wystarcza dla jednej ekipy znajomych).
 - Ręczny wybór podzbioru gier do zapisu jako paczka (v1 zapisuje całą aktywną pulę).
+- Plinko: równe szanse dla każdego slotu (świadomie odrzucone — naturalna fizyka Plinko jest zamierzona).
+- Plinko: zapisywanie/odtwarzanie wcześniejszych zrzutów w historii (na razie tylko wynik = która gra wygrała, jak przy swipe).
