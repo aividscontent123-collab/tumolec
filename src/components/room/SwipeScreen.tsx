@@ -12,6 +12,7 @@ import {
   startRound,
   subscribeToRound,
   subscribeToRoundSwipes,
+  subscribeToEliminationRounds,
   castSwipe,
   finishRound,
   type PoolGame,
@@ -24,7 +25,10 @@ import { resolveRound, type Swipe } from "@/lib/elimination";
  * połowy, remisy) liczona w lib/elimination.ts -- ten komponent tylko łączy ją
  * z Firestore i UI. Rundy są scope'owane przez sessionId (roundId =
  * `${sessionId}-round-${n}`), więc kolejna rozgrywka w tym samym pokoju dostaje
- * świeże dokumenty i świeże podkolekcje swipe'ów. Szczegóły: work/active/Tumolec.md. */
+ * świeże dokumenty i świeże podkolekcje swipe'ów. Dwie równoległe sesje startu
+ * (dwóch klientów bootstrapujących jednocześnie) zbiegają do jednej przez live
+ * nasłuch w drugim useEffect poniżej -- patrz jego komentarz. Szczegóły:
+ * work/active/Tumolec.md. */
 export function SwipeScreen({ roomCode }: { roomCode: string }) {
   const { participantId } = useParticipant(roomCode);
   const [poolGames, setPoolGames] = useState<PoolGame[]>([]);
@@ -52,6 +56,23 @@ export function SwipeScreen({ roomCode }: { roomCode: string }) {
       bootstrapping.current = false;
     });
   }, [roomCode, poolGames, session]);
+
+  // Naprawa wyścigu: gdy dwóch klientów wystartuje RÓWNOLEGLE różne sesje (żaden
+  // nie widział drugiego w chwili bootstrapu -- getActiveRound wyżej to tylko
+  // jednorazowy odczyt), obaj nasłuchują tu na żywo i zbiegają do sesji o
+  // najniższym sessionId. Ograniczone do rundy 1: po awansie do rundy 2+ dana
+  // sesja jest już "realną" grą i nie przełączamy jej pod kimś w trakcie.
+  useEffect(() => {
+    if (!session || session.roundNumber !== 1) return;
+    return subscribeToEliminationRounds(roomCode, (rounds) => {
+      const voting = rounds.filter((r) => r.status === "voting" && r.roundNumber === 1);
+      if (voting.length === 0) return;
+      const canonical = [...voting].sort((a, b) => a.sessionId.localeCompare(b.sessionId))[0].sessionId;
+      if (canonical !== session.sessionId) {
+        setSession({ sessionId: canonical, roundNumber: 1 });
+      }
+    });
+  }, [roomCode, session]);
 
   const gameByAppId = new Map(poolGames.map((g) => [g.steamAppId, g]));
   const activeGames = poolGames.filter((g) => g.status === "active");
