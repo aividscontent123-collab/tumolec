@@ -36,9 +36,13 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
       }
       return;
     }
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard niedostępny/odrzucony -- nic więcej nie da się zrobić */
+    }
   }
 
   useEffect(() => {
