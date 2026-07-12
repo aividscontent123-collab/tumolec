@@ -94,5 +94,16 @@ service cloud.firestore {
         && request.resource.data.recRequirements is string
         && request.resource.data.cachedAt is number;
     }
+
+    match /packages/{packageId} {
+      allow read: if true;
+      // Paczki tworzone przez klientów (brak logowania). hasOnly zamyka zapis
+      // na dokładnie te trzy pola; niezmienne po utworzeniu.
+      allow create: if request.resource.data.keys().hasOnly(['name', 'createdAt', 'gameIds'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.gameIds is list;
+      allow update, delete: if false;
+    }
   }
 }
