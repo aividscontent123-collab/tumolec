@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useDrag } from "@use-gesture/react";
 import { ExternalLink } from "lucide-react";
 import type { SwipeGame } from "@/lib/types";
 import { decideSwipeDirection } from "@/lib/swipeGesture";
+import { steamLibraryPortraitUrl } from "@/lib/steamImages";
 
 const SPRING_BACK = { type: "spring", stiffness: 500, damping: 30 } as const;
 
@@ -36,6 +38,13 @@ export function SwipeCard({
     ],
   );
 
+  // Start od pionowego assetu (ostry na wysokiej karcie); gdy 404 (nie każdy
+  // appid ma library art), onError przełącza na poziomy header (coverImageUrl).
+  // Trzeci poziom (brak obrazka w ogóle) obsługuje istniejący placeholder niżej.
+  const [imgSrc, setImgSrc] = useState<string | undefined>(
+    game.coverImageUrl ? steamLibraryPortraitUrl(game.steamAppId) : undefined,
+  );
+
   const bind = useDrag(({ movement: [mx, my], velocity: [vx], last }) => {
     if (!last) {
       x.set(mx);
@@ -63,14 +72,18 @@ export function SwipeCard({
       className="rounded-card relative h-full w-full cursor-grab overflow-hidden active:cursor-grabbing"
     >
       <div className="absolute inset-0">
-        {game.coverImageUrl ? (
+        {game.coverImageUrl && imgSrc ? (
           <Image
-            src={game.coverImageUrl}
+            src={imgSrc}
             alt={game.title}
             fill
             className="pointer-events-none object-cover"
             sizes="(max-width: 500px) 100vw, 500px"
             draggable={false}
+            onError={() => {
+              // Portret nie istnieje -> spadamy na poziomy header raz.
+              if (imgSrc !== game.coverImageUrl) setImgSrc(game.coverImageUrl);
+            }}
           />
         ) : (
           <div
