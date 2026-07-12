@@ -46,6 +46,9 @@ export function PlinkoBoard({
     const engine = Engine.create();
     engine.gravity.y = 1;
 
+    // ponytail: canvas CSS-skalowany do kontenera, wewn. rozdzielczość stała 320.
+    // Upgrade path: ResizeObserver -> WIDTH z faktycznej szerokości, tylko jeśli
+    // rozmycie na szerokim viewporcie przeszkadza.
     const render = Render.create({
       element: container,
       engine,
@@ -111,5 +114,11 @@ export function PlinkoBoard({
     };
   }, [dropSeed, dropping, slots, rows, height]);
 
-  return <div ref={containerRef} className="mx-auto" style={{ width: WIDTH, height }} />;
+  return (
+    <div
+      ref={containerRef}
+      className="mx-auto w-full"
+      style={{ maxWidth: "min(92vw, 420px)", height }}
+    />
+  );
 }
