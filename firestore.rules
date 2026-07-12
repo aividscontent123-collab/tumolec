@@ -45,6 +45,7 @@ service cloud.firestore {
         // danymi (np. wymusić zwycięzcę bez przejścia przez swipes).
         allow create: if request.resource.data.roundNumber is number
           && request.resource.data.poolAtStart is list
+          && request.resource.data.sessionId is string
           && request.resource.data.status == 'voting';
         allow update: if request.resource.data.diff(resource.data)
           .affectedKeys().hasOnly(['status', 'survivors'])

@@ -8,7 +8,7 @@ import { useParticipant } from "@/lib/useParticipant";
 import {
   subscribeToGamePool,
   subscribeToParticipants,
-  getRound,
+  getActiveRound,
   startRound,
   subscribeToRound,
   subscribeToRoundSwipes,
@@ -22,31 +22,39 @@ import { resolveRound, type Swipe } from "@/lib/elimination";
 
 /** Talia swipe + orkiestracja rund eliminacji. Mechanika (odcinanie najsłabszej
  * połowy, remisy) liczona w lib/elimination.ts -- ten komponent tylko łączy ją
- * z Firestore i UI. Szczegóły: work/active/Tumolec.md w vaulcie Obsidian. */
+ * z Firestore i UI. Rundy są scope'owane przez sessionId (roundId =
+ * `${sessionId}-round-${n}`), więc kolejna rozgrywka w tym samym pokoju dostaje
+ * świeże dokumenty i świeże podkolekcje swipe'ów. Szczegóły: work/active/Tumolec.md. */
 export function SwipeScreen({ roomCode }: { roomCode: string }) {
   const { participantId } = useParticipant(roomCode);
   const [poolGames, setPoolGames] = useState<PoolGame[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [roundNumber, setRoundNumber] = useState(1);
-  const bootstrapped = useRef(false);
+  const [session, setSession] = useState<{ sessionId: string; roundNumber: number } | null>(null);
+  const bootstrapping = useRef(false);
 
   useEffect(() => subscribeToGamePool(roomCode, setPoolGames), [roomCode]);
   useEffect(() => subscribeToParticipants(roomCode, setParticipants), [roomCode]);
 
-  // Rozpoczyna rundę 1 przy pierwszej okazji, gdy pula jest gotowa i runda
-  // jeszcze nie istnieje (np. w wyniku odświeżenia strony przez inny klient).
+  // Ustala sesję: przejmuje trwającą rundę "voting", albo startuje nową sesję.
   useEffect(() => {
-    if (bootstrapped.current || roundNumber !== 1) return;
+    if (session || bootstrapping.current) return;
     const active = poolGames.filter((g) => g.status === "active").map((g) => g.steamAppId);
     if (active.length < 2) return;
-    bootstrapped.current = true;
-    getRound(roomCode, "round-1").then((existing) => {
-      if (!existing) startRound(roomCode, 1, active);
+    bootstrapping.current = true;
+    getActiveRound(roomCode).then((existing) => {
+      if (existing) {
+        setSession({ sessionId: existing.sessionId, roundNumber: existing.roundNumber });
+      } else {
+        const sessionId = crypto.randomUUID();
+        startRound(roomCode, sessionId, 1, active);
+        setSession({ sessionId, roundNumber: 1 });
+      }
+      bootstrapping.current = false;
     });
-  }, [roomCode, poolGames, roundNumber]);
+  }, [roomCode, poolGames, session]);
 
-  const activeGames = poolGames.filter((g) => g.status === "active");
   const gameByAppId = new Map(poolGames.map((g) => [g.steamAppId, g]));
+  const activeGames = poolGames.filter((g) => g.status === "active");
 
   if (!participantId) {
     return <p className="text-text-secondary p-6 text-center text-sm">Dołącz do pokoju w lobby.</p>;
@@ -54,26 +62,29 @@ export function SwipeScreen({ roomCode }: { roomCode: string }) {
   if (activeGames.length < 2) {
     return <p className="text-text-secondary p-6 text-center text-sm">Dodaj co najmniej 2 gry w puli.</p>;
   }
+  if (!session) {
+    return <p className="text-text-secondary p-6 text-center text-sm">Przygotowuję rundę…</p>;
+  }
 
   return (
     <RoundVoting
       // `key` wymusza pełny remount przy zmianie rundy -- inaczej stan `round`/
-      // `swipes` dwóch niezależnych subskrypcji mógłby się na chwilę rozjechać
-      // (nowy `round` już z rundy N+1, `swipes` jeszcze z N), co raz spowodowało
-      // rozstrzygnięcie zwycięzcy na nieaktualnych głosach z poprzedniej rundy.
-      key={roundNumber}
+      // `swipes` dwóch niezależnych subskrypcji mógłby się na chwilę rozjechać.
+      key={`${session.sessionId}-${session.roundNumber}`}
       roomCode={roomCode}
-      roundNumber={roundNumber}
+      sessionId={session.sessionId}
+      roundNumber={session.roundNumber}
       participantId={participantId}
       participants={participants}
       gameByAppId={gameByAppId}
-      onAdvance={() => setRoundNumber((n) => n + 1)}
+      onAdvance={() => setSession((s) => (s ? { ...s, roundNumber: s.roundNumber + 1 } : s))}
     />
   );
 }
 
 function RoundVoting({
   roomCode,
+  sessionId,
   roundNumber,
   participantId,
   participants,
@@ -81,6 +92,7 @@ function RoundVoting({
   onAdvance,
 }: {
   roomCode: string;
+  sessionId: string;
   roundNumber: number;
   participantId: string;
   participants: Participant[];
@@ -89,7 +101,7 @@ function RoundVoting({
 }) {
   const [round, setRound] = useState<RoundDoc | null>(null);
   const [swipes, setSwipes] = useState<Swipe[]>([]);
-  const roundId = `round-${roundNumber}`;
+  const roundId = `${sessionId}-round-${roundNumber}`;
 
   useEffect(() => {
     const unsubRound = subscribeToRound(roomCode, roundId, (r) => {
@@ -106,8 +118,7 @@ function RoundVoting({
   }, [roomCode, roundId, onAdvance]);
 
   // Gdy wszyscy skończą głosować w tej rundzie, którykolwiek klient ją zamyka.
-  // Bezpieczne przy wyścigu wielu klientów: resolveRound jest czystą funkcją
-  // tych samych danych, więc każdy policzy identyczny wynik.
+  // Bezpieczne przy wyścigu: resolveRound jest czystą funkcją tych samych danych.
   useEffect(() => {
     if (!round || round.status !== "voting" || participants.length === 0) return;
     if (swipes.length < round.poolAtStart.length * participants.length) return;
@@ -119,14 +130,9 @@ function RoundVoting({
     } else if (result.status === "advance") {
       finalSurvivors = result.survivors;
     } else if (result.status === "tie-break") {
-      // TODO(Faza 3+): zakładka /coinflip już istnieje (lib/rooms.ts
-      // triggerCoinflip/subscribeToCoinflip), ale NIE jest tu podpięta jako
-      // tie-breaker -- wymagałoby to nowego stanu rundy ("czeka na coinflip")
-      // i koordynacji KTÓRY klient triggeruje rzut, żeby wielu klientów
-      // liczących resolveRound niezależnie (patrz komentarz przy finishRound
-      // w lib/rooms.ts) nie próbowało rzucić monetą osobno z różnym wynikiem.
-      // Na razie zostaje deterministyczne rozstrzygnięcie (najniższy appid) --
-      // bezpieczne przy wyścigu, bo każdy klient liczy identyczny wynik.
+      // TODO(Faza 3+): coinflip jako tie-breaker nie jest tu podpięty (patrz
+      // komentarz przy finishRound w lib/rooms.ts). Na razie deterministyczne
+      // rozstrzygnięcie (najniższy appid) -- bezpieczne przy wyścigu.
       const brokenTie = [...result.tiedForCutoff].sort((a, b) => a - b).slice(0, result.slotsAvailable);
       finalSurvivors = [...result.survivors, ...brokenTie];
     }
@@ -134,9 +140,9 @@ function RoundVoting({
 
     finishRound(roomCode, roundId, finalSurvivors);
     if (finalSurvivors.length > 1) {
-      startRound(roomCode, roundNumber + 1, finalSurvivors);
+      startRound(roomCode, sessionId, roundNumber + 1, finalSurvivors);
     }
-  }, [round, swipes, participants, roomCode, roundId, roundNumber]);
+  }, [round, swipes, participants, roomCode, roundId, sessionId, roundNumber]);
 
   const myVotes = new Set(
     swipes.filter((s) => s.participantId === participantId).map((s) => s.steamAppId),

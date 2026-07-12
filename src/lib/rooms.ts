@@ -10,12 +10,15 @@ import {
   doc,
   DocumentData,
   getDoc,
+  getDocs,
   onSnapshot,
+  query,
   QueryDocumentSnapshot,
   serverTimestamp,
   setDoc,
   Timestamp,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { SwipeGame } from "@/lib/types";
@@ -131,9 +134,15 @@ export function subscribeToGamePool(roomCode: string, onChange: (games: PoolGame
 
 // ── Rundy eliminacji ──────────────────────────────────────────────────────
 
-export async function startRound(roomCode: string, roundNumber: number, poolAtStart: number[]): Promise<string> {
-  const roundId = `round-${roundNumber}`;
+export async function startRound(
+  roomCode: string,
+  sessionId: string,
+  roundNumber: number,
+  poolAtStart: number[],
+): Promise<string> {
+  const roundId = `${sessionId}-round-${roundNumber}`;
   await setDoc(doc(db, "rooms", roomCode, "eliminationRounds", roundId), {
+    sessionId,
     roundNumber,
     poolAtStart,
     status: "voting",
@@ -175,11 +184,40 @@ export type RoundDoc = {
   poolAtStart: number[];
   status: "voting" | "finished";
   survivors: number[] | null;
+  sessionId: string;
 };
 
 export async function getRound(roomCode: string, roundId: string): Promise<RoundDoc | null> {
   const snap = await getDoc(doc(db, "rooms", roomCode, "eliminationRounds", roundId));
   return snap.exists() ? (snap.data() as RoundDoc) : null;
+}
+
+/** Znajduje trwającą sekwencję eliminacji, żeby świeży mount/nowy klient
+ * dołączył do niej zamiast startować równoległą. Determinizm przy wyścigu:
+ * gdy dwóch klientów wystartowało równolegle różne sesje, wszyscy zbiegają
+ * się do tej o najmniejszym sessionId (reszta zostaje osierocona, nieszkodliwa). */
+export async function getActiveRound(
+  roomCode: string,
+): Promise<{ sessionId: string; roundNumber: number } | null> {
+  const q = query(
+    collection(db, "rooms", roomCode, "eliminationRounds"),
+    where("status", "==", "voting"),
+  );
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const rounds = snap.docs.map((d) => d.data() as RoundDoc);
+  rounds.sort((a, b) => a.sessionId.localeCompare(b.sessionId));
+  return { sessionId: rounds[0].sessionId, roundNumber: rounds[0].roundNumber };
+}
+
+/** Wszystkie rundy pokoju (do rozbudowanej historii). */
+export function subscribeToEliminationRounds(
+  roomCode: string,
+  onChange: (rounds: RoundDoc[]) => void,
+) {
+  return onSnapshot(collection(db, "rooms", roomCode, "eliminationRounds"), (snap) => {
+    onChange(snap.docs.map((d) => d.data() as RoundDoc));
+  });
 }
 
 export function subscribeToRound(
