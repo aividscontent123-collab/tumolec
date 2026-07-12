@@ -3,17 +3,18 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { subscribeToGamePool, type PoolGame } from "@/lib/rooms";
+import { subscribeToGamePool, subscribeToEliminationRounds, type PoolGame, type RoundDoc } from "@/lib/rooms";
 import { useParticipant } from "@/lib/useParticipant";
-import { buildHistory, pluralizeGry } from "@/lib/history";
+import { buildHistory, pluralizeGry, sessionBreakdownForGame } from "@/lib/history";
 
 export function HistoryScreen({ roomCode }: { roomCode: string }) {
   const { participantId } = useParticipant(roomCode);
   const [games, setGames] = useState<PoolGame[]>([]);
+  const [rounds, setRounds] = useState<RoundDoc[]>([]);
+  const [expanded, setExpanded] = useState<number | null>(null);
 
-  useEffect(() => {
-    return subscribeToGamePool(roomCode, setGames);
-  }, [roomCode]);
+  useEffect(() => subscribeToGamePool(roomCode, setGames), [roomCode]);
+  useEffect(() => subscribeToEliminationRounds(roomCode, setRounds), [roomCode]);
 
   const history = buildHistory(games);
 
@@ -40,7 +41,7 @@ export function HistoryScreen({ roomCode }: { roomCode: string }) {
 
       {history.totalPlayed === 0 ? (
         <p className="text-text-secondary py-8 text-center text-sm">
-          Jeszcze nie zagraliście w żadną grę. Oznacz grę jako „Zagrane” w puli.
+          Jeszcze nie zagraliście w żadną grę. Oznacz grę jako „Zagrane" w puli.
         </p>
       ) : (
         <>
@@ -49,34 +50,60 @@ export function HistoryScreen({ roomCode }: { roomCode: string }) {
           </p>
           <div className="min-h-0 flex-1 overflow-y-auto">
             <ul className="flex flex-col gap-3">
-              {history.games.map((game) => (
-                <li
-                  key={game.steamAppId}
-                  className="bg-card border-border flex items-center gap-3 rounded-xl border p-3"
-                >
-                  {game.coverImageUrl && (
-                    <Image
-                      src={game.coverImageUrl}
-                      alt=""
-                      width={96}
-                      height={48}
-                      className="h-12 w-24 shrink-0 rounded-lg object-cover"
-                    />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{game.title}</p>
-                    <p className="text-text-secondary text-xs">
-                      {game.playedAt
-                        ? new Date(game.playedAt).toLocaleDateString("pl-PL", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          })
-                        : "przed chwilą"}
-                    </p>
-                  </div>
-                </li>
-              ))}
+              {history.games.map((game) => {
+                const breakdown = sessionBreakdownForGame(rounds, game.steamAppId);
+                const isOpen = expanded === game.steamAppId;
+                return (
+                  <li
+                    key={game.steamAppId}
+                    className="bg-card border-border flex flex-col gap-2 rounded-xl border p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      {game.coverImageUrl && (
+                        <Image
+                          src={game.coverImageUrl}
+                          alt=""
+                          width={96}
+                          height={48}
+                          className="h-12 w-24 shrink-0 rounded-lg object-cover"
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-foreground">{game.title}</p>
+                        <p className="text-text-secondary text-xs">
+                          {game.playedAt
+                            ? new Date(game.playedAt).toLocaleDateString("pl-PL", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              })
+                            : "przed chwilą"}
+                        </p>
+                      </div>
+                      {breakdown.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setExpanded(isOpen ? null : game.steamAppId)}
+                          className="bg-secondary text-text-secondary shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold"
+                        >
+                          {isOpen ? "Ukryj" : "Przebieg"}
+                        </button>
+                      )}
+                    </div>
+
+                    {isOpen && breakdown.length > 0 && (
+                      <ol className="border-border flex flex-col gap-1 border-t pt-2">
+                        {breakdown.map((r) => (
+                          <li key={r.roundNumber} className="text-text-secondary text-xs">
+                            Runda {r.roundNumber}: {r.gamesIn} {pluralizeGry(r.gamesIn)} → dalej{" "}
+                            {r.survivorsCount} {pluralizeGry(r.survivorsCount)}
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </>

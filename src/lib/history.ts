@@ -1,7 +1,7 @@
 /** Historia zagranych gier: czysta funkcja, bez zależności od Firestore/UI
  * (analogicznie do lib/elimination.ts), żeby dało się ją testować niezależnie. */
 
-import type { PoolGame } from "@/lib/rooms";
+import type { PoolGame, RoundDoc } from "@/lib/rooms";
 
 export type History = { totalPlayed: number; games: PoolGame[] };
 
@@ -32,4 +32,24 @@ export function pluralizeGry(n: number): string {
   if (lastDigit === 1) return "grę";
   if (lastDigit >= 2 && lastDigit <= 4) return "gry";
   return "gier";
+}
+
+export type RoundBreakdown = { roundNumber: number; gamesIn: number; survivorsCount: number };
+
+/** Dla wygranej gry (jedyny ocalały finałowej rundy) zwraca przebieg CAŁEJ jej
+ * sesji: numer rundy, ile gier weszło, ilu ocalało. Pusta lista, gdy gra nigdy
+ * nie była jedynym ocalałym (wyeliminowana albo wybrana inną mini-grą niż swipe). */
+export function sessionBreakdownForGame(rounds: RoundDoc[], steamAppId: number): RoundBreakdown[] {
+  const finalRound = rounds.find(
+    (r) => r.status === "finished" && r.survivors?.length === 1 && r.survivors[0] === steamAppId,
+  );
+  if (!finalRound) return [];
+  return rounds
+    .filter((r) => r.sessionId === finalRound.sessionId)
+    .sort((a, b) => a.roundNumber - b.roundNumber)
+    .map((r) => ({
+      roundNumber: r.roundNumber,
+      gamesIn: r.poolAtStart.length,
+      survivorsCount: r.survivors?.length ?? 0,
+    }));
 }
