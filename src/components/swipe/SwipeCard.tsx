@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useDrag } from "@use-gesture/react";
 import { ExternalLink } from "lucide-react";
 import type { SwipeGame } from "@/lib/types";
 import { decideSwipeDirection } from "@/lib/swipeGesture";
+import { steamLibraryPortraitUrl } from "@/lib/steamImages";
 
 const SPRING_BACK = { type: "spring", stiffness: 500, damping: 30 } as const;
 
@@ -36,6 +38,20 @@ export function SwipeCard({
     ],
   );
 
+  // Liczone świeżo z propsa co render (nie w useState) -- game.coverImageUrl
+  // potrafi doładować się asynchronicznie już PO zamontowaniu karty (osobny
+  // listener Firestore na steam_cache), a karta nie remountuje się przy tej
+  // zmianie (key w SwipeScreen to steamAppId, nie coverImageUrl). Trzymanie
+  // tylko URL-a w stanie zamroziłoby kartę na placeholderze na stałe.
+  // Stan trzyma wyłącznie "czy pionowy portret zawiódł" dla BIEŻĄCEGO
+  // steamAppId -- reset przy zmianie gry następuje przez remount (key).
+  const [portraitFailed, setPortraitFailed] = useState(false);
+  const imgSrc = game.coverImageUrl
+    ? portraitFailed
+      ? game.coverImageUrl
+      : steamLibraryPortraitUrl(game.steamAppId)
+    : undefined;
+
   const bind = useDrag(({ movement: [mx, my], velocity: [vx], last }) => {
     if (!last) {
       x.set(mx);
@@ -63,14 +79,18 @@ export function SwipeCard({
       className="rounded-card relative h-full w-full cursor-grab overflow-hidden active:cursor-grabbing"
     >
       <div className="absolute inset-0">
-        {game.coverImageUrl ? (
+        {game.coverImageUrl && imgSrc ? (
           <Image
-            src={game.coverImageUrl}
+            src={imgSrc}
             alt={game.title}
             fill
             className="pointer-events-none object-cover"
             sizes="(max-width: 500px) 100vw, 500px"
             draggable={false}
+            onError={() => {
+              // Portret nie istnieje -> spadamy na poziomy header raz (na steamAppId).
+              if (!portraitFailed) setPortraitFailed(true);
+            }}
           />
         ) : (
           <div
