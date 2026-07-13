@@ -46,11 +46,22 @@ export function PlinkoBoard({
     const engine = Engine.create();
     engine.gravity.y = 1;
 
+    // ponytail: canvas CSS-skalowany do kontenera, wewn. rozdzielczość stała 320.
+    // Upgrade path: ResizeObserver -> WIDTH z faktycznej szerokości, tylko jeśli
+    // rozmycie na szerokim viewporcie przeszkadza.
     const render = Render.create({
       element: container,
       engine,
       options: { width: WIDTH, height, background: "transparent", wireframes: false },
     });
+    // Matter.js ustawia canvas.style.width/height = wewnętrzna rozdzielczość
+    // (px), więc bez tego canvas ignoruje responsywny kontener i zawsze
+    // rysuje się jako sztywne WIDTH×height, niezależnie od jego rozmiaru.
+    // Nadpisanie na 100% pozwala CSS-owi skalować widoczny canvas do
+    // kontenera (aspect-ratio niżej pilnuje proporcji); wewnętrzna
+    // rozdzielczość rysowania (WIDTH/height, fizyka) zostaje bez zmian.
+    render.canvas.style.width = "100%";
+    render.canvas.style.height = "100%";
 
     // Kołki: trójkątny układ, N-1 rzędów; rząd r ma r+2 kołków.
     const pegs = [];
@@ -111,5 +122,11 @@ export function PlinkoBoard({
     };
   }, [dropSeed, dropping, slots, rows, height]);
 
-  return <div ref={containerRef} className="mx-auto" style={{ width: WIDTH, height }} />;
+  return (
+    <div
+      ref={containerRef}
+      className="mx-auto w-full"
+      style={{ maxWidth: "min(92vw, 420px)", aspectRatio: `${WIDTH} / ${height}` }}
+    />
+  );
 }

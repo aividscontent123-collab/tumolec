@@ -38,7 +38,7 @@ export function WheelControls({ roomCode, wheel }: { roomCode: string; wheel: Wh
         {wheel.entries.map((entry) => (
           <li
             key={entry}
-            className="flex items-center justify-between rounded-xl px-4 py-2 text-sm text-foreground"
+            className="flex items-center justify-between rounded-xl px-5 py-3.5 text-base text-foreground"
             style={{ backgroundColor: "oklch(0.2 0.02 265)" }}
           >
             {entry}
@@ -46,7 +46,7 @@ export function WheelControls({ roomCode, wheel }: { roomCode: string; wheel: Wh
               type="button"
               aria-label={`Usuń ${entry}`}
               onClick={() => removeWheelEntry(roomCode, entry)}
-              className="text-text-secondary"
+              className="text-text-secondary flex h-8 w-8 items-center justify-center text-lg"
             >
               ✕
             </button>
@@ -58,7 +58,7 @@ export function WheelControls({ roomCode, wheel }: { roomCode: string; wheel: Wh
         type="button"
         disabled={wheel.entries.length < 2 || wheel.spinning}
         onClick={() => triggerWheelSpin(roomCode)}
-        className="rounded-full py-3 text-sm font-bold text-white disabled:opacity-50"
+        className="rounded-full py-4 text-base font-bold text-white disabled:opacity-50"
         style={{ backgroundColor: "var(--accent-brand)", boxShadow: "0 8px 24px var(--accent-brand-soft)" }}
       >
         {wheel.spinning ? "Kręcimy…" : wheel.entries.length < 2 ? "Dodaj co najmniej 2 wpisy" : "Losuj"}

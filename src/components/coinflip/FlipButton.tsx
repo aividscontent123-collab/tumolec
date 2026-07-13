@@ -18,7 +18,7 @@ export function FlipButton({ roomCode }: { roomCode: string }) {
     <button
       onClick={handleClick}
       disabled={flipping}
-      className="rounded-full py-3 text-center text-sm font-bold text-white disabled:opacity-50"
+      className="rounded-full py-4 text-center text-base font-bold text-white disabled:opacity-50"
       style={{ backgroundColor: "var(--accent-brand)", boxShadow: "0 8px 24px var(--accent-brand-soft)" }}
     >
       {flipping ? "Rzucam…" : "Rzuć monetą"}

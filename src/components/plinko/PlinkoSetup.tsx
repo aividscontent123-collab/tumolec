@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { setPlinkoAssignments, type PlinkoState, type PoolGame } from "@/lib/rooms";
 import { slotProbabilities } from "@/lib/plinko";
 
@@ -36,16 +37,27 @@ export function PlinkoSetup({
         {order.map((id, i) => (
           <li
             key={id}
-            className="bg-card border-border flex items-center gap-2 rounded-xl border px-4 py-2 text-sm text-foreground"
+            className="bg-card border-border flex items-center gap-3 rounded-xl border p-3 text-foreground"
           >
-            <span className="min-w-0 flex-1 truncate">{gameByAppId.get(id)?.title ?? "…"}</span>
-            <span className="text-text-secondary shrink-0 text-xs">{Math.round(probs[i] * 100)}%</span>
+            {gameByAppId.get(id)?.coverImageUrl && (
+              <Image
+                src={gameByAppId.get(id)!.coverImageUrl!}
+                alt=""
+                width={96}
+                height={48}
+                className="h-12 w-24 shrink-0 rounded-lg object-cover"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-base font-semibold">{gameByAppId.get(id)?.title ?? "…"}</p>
+              <p className="text-text-secondary text-xs">Szansa {Math.round(probs[i] * 100)}%</p>
+            </div>
             <button
               type="button"
               aria-label="W górę"
               onClick={() => move(i, -1)}
               disabled={i === 0}
-              className="text-text-secondary shrink-0 disabled:opacity-30"
+              className="text-text-secondary flex h-9 w-9 shrink-0 items-center justify-center text-xl disabled:opacity-30"
             >
               ↑
             </button>
@@ -54,7 +66,7 @@ export function PlinkoSetup({
               aria-label="W dół"
               onClick={() => move(i, 1)}
               disabled={i === order.length - 1}
-              className="text-text-secondary shrink-0 disabled:opacity-30"
+              className="text-text-secondary flex h-9 w-9 shrink-0 items-center justify-center text-xl disabled:opacity-30"
             >
               ↓
             </button>
@@ -65,7 +77,7 @@ export function PlinkoSetup({
         type="button"
         disabled={order.length < 2 || plinko.dropping}
         onClick={onDrop}
-        className="rounded-full py-3 text-sm font-bold text-white disabled:opacity-50"
+        className="rounded-full py-4 text-base font-bold text-white disabled:opacity-50"
         style={{ backgroundColor: "var(--accent-brand)", boxShadow: "0 8px 24px var(--accent-brand-soft)" }}
       >
         {plinko.dropping ? "Kulka leci…" : order.length < 2 ? "Dodaj co najmniej 2 gry" : "Zrzuć"}
