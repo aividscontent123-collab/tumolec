@@ -17,6 +17,9 @@ type DetailsResponse = {
   error?: string;
 };
 
+// UWAGA: te stringi zależą od /api/steam/details pobierającego dane z l=polish
+// (src/lib/steam.ts) -- zmiana tego parametru gdziekolwiek indziej cicho zepsuje
+// to dopasowanie (żaden błąd kompilacji, po prostu wszystko przestanie pasować).
 function matchesMultiplayerFilter(tags: string[], filter: MultiplayerFilter): boolean {
   if (filter === "all") return true;
   if (filter === "solo") return tags.includes("Jednoosobowa");
@@ -106,7 +109,7 @@ export function SoloSwipeScreen({
         ) : null}
       </div>
 
-      {!exhausted && <SwipeActionButtons onPass={handleSwipe} onLike={handleSwipe} />}
+      {!exhausted && !loadingCard && <SwipeActionButtons onPass={handleSwipe} onLike={handleSwipe} />}
     </main>
   );
 }
