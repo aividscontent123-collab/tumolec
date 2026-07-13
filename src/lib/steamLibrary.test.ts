@@ -1,0 +1,43 @@
+import { describe, expect, it } from "vitest";
+import { filterByPlaytime, shuffleGames, type SteamOwnedGame } from "./steamLibrary";
+
+function game(steamAppId: number, playtimeMinutes: number): SteamOwnedGame {
+  return { steamAppId, name: `Game ${steamAppId}`, playtimeMinutes };
+}
+
+describe("filterByPlaytime", () => {
+  const games = [
+    game(1, 0), // nigdy nie grane
+    game(2, 119), // <2h
+    game(3, 120), // dokładnie 2h -- brzeg "porzucone"
+    game(4, 599), // <10h, wciąż "porzucone" (2-10h)
+    game(5, 600), // dokładnie 10h -- brzeg, NIE "porzucone" ani "<10h"
+    game(6, 1000), // dużo grane
+  ];
+
+  it("never: tylko playtime === 0", () => {
+    expect(filterByPlaytime(games, "never").map((g) => g.steamAppId)).toEqual([1]);
+  });
+
+  it("under2h: playtime < 120", () => {
+    expect(filterByPlaytime(games, "under2h").map((g) => g.steamAppId)).toEqual([1, 2]);
+  });
+
+  it("under10h: playtime < 600", () => {
+    expect(filterByPlaytime(games, "under10h").map((g) => g.steamAppId)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("abandoned: 120 <= playtime < 600 (2-10h)", () => {
+    expect(filterByPlaytime(games, "abandoned").map((g) => g.steamAppId)).toEqual([3, 4]);
+  });
+});
+
+describe("shuffleGames", () => {
+  it("zwraca te same elementy w innej tablicy (nie mutuje wejścia)", () => {
+    const games = [game(1, 0), game(2, 0), game(3, 0)];
+    const shuffled = shuffleGames(games);
+    expect(shuffled).not.toBe(games);
+    expect(shuffled.map((g) => g.steamAppId).sort()).toEqual([1, 2, 3]);
+    expect(games.map((g) => g.steamAppId)).toEqual([1, 2, 3]); // wejście nietknięte
+  });
+});
