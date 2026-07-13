@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import type { SwipeGame } from "@/lib/types";
-import type { SteamOwnedGame } from "@/lib/steamLibrary";
-import type { MultiplayerFilter } from "@/components/solo/SoloSettingsScreen";
+import { matchesMultiplayerFilter, type MultiplayerFilter, type SteamOwnedGame } from "@/lib/steamLibrary";
 
 type DetailsResponse = {
   steamAppId: number;
@@ -16,15 +15,6 @@ type DetailsResponse = {
   reviewSummary: string;
   error?: string;
 };
-
-// UWAGA: te stringi zależą od /api/steam/details pobierającego dane z l=polish
-// (src/lib/steam.ts) -- zmiana tego parametru gdziekolwiek indziej cicho zepsuje
-// to dopasowanie (żaden błąd kompilacji, po prostu wszystko przestanie pasować).
-function matchesMultiplayerFilter(tags: string[], filter: MultiplayerFilter): boolean {
-  if (filter === "all") return true;
-  if (filter === "solo") return tags.includes("Jednoosobowa");
-  return tags.includes("Wieloosobowa") || tags.includes("Kooperacja");
-}
 
 /** Solo: żadnego zapisu do Firestore, żadnego pokoju -- decyzje żyją tylko
  * w stanie tego komponentu, zgodnie z zachowaniem Dustpile ("Twoje wybory

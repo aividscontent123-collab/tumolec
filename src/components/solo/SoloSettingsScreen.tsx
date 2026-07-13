@@ -5,9 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { roomExists } from "@/lib/rooms";
-import type { BacklogFilter } from "@/lib/steamLibrary";
-
-export type MultiplayerFilter = "all" | "solo" | "multi";
+import type { BacklogFilter, MultiplayerFilter } from "@/lib/steamLibrary";
 
 const BACKLOG_OPTIONS: { value: BacklogFilter; label: string }[] = [
   { value: "never", label: "Nigdy nie grane (0 min)" },

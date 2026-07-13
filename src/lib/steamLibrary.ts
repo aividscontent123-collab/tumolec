@@ -34,6 +34,17 @@ export function shuffleGames(games: SteamOwnedGame[]): SteamOwnedGame[] {
   return result;
 }
 
+export type MultiplayerFilter = "all" | "solo" | "multi";
+
+// UWAGA: te stringi zależą od /api/steam/details pobierającego dane z l=polish
+// (src/lib/steam.ts) -- zmiana tego parametru gdziekolwiek indziej cicho zepsuje
+// to dopasowanie (żaden błąd kompilacji, po prostu wszystko przestanie pasować).
+export function matchesMultiplayerFilter(tags: string[], filter: MultiplayerFilter): boolean {
+  if (filter === "all") return true;
+  if (filter === "solo") return tags.includes("Jednoosobowa");
+  return tags.includes("Wieloosobowa") || tags.includes("Kooperacja");
+}
+
 /** Część wspólna bibliotek Steam uczestników pokoju, liczona z co najmniej
  * dwóch niepustych list -- mniej niż dwie biblioteki = nic do przecięcia. */
 export function computeSharedLibrary(participants: { steamLibraryAppIds?: number[] }[]): number[] {

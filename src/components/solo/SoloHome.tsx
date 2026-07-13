@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { SoloSettingsScreen, type MultiplayerFilter } from "@/components/solo/SoloSettingsScreen";
+import { SoloSettingsScreen } from "@/components/solo/SoloSettingsScreen";
 import { SoloSwipeScreen } from "@/components/solo/SoloSwipeScreen";
-import { filterByPlaytime, shuffleGames, type BacklogFilter, type SteamOwnedGame } from "@/lib/steamLibrary";
+import {
+  filterByPlaytime,
+  shuffleGames,
+  type BacklogFilter,
+  type MultiplayerFilter,
+  type SteamOwnedGame,
+} from "@/lib/steamLibrary";
 
 type Screen =
   | { name: "settings" }

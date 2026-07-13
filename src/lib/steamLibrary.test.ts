@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { computeSharedLibrary, filterByPlaytime, shuffleGames, type SteamOwnedGame } from "./steamLibrary";
+import {
+  computeSharedLibrary,
+  filterByPlaytime,
+  matchesMultiplayerFilter,
+  shuffleGames,
+  type SteamOwnedGame,
+} from "./steamLibrary";
 
 function game(steamAppId: number, playtimeMinutes: number): SteamOwnedGame {
   return { steamAppId, name: `Game ${steamAppId}`, playtimeMinutes };
@@ -39,6 +45,23 @@ describe("shuffleGames", () => {
     expect(shuffled).not.toBe(games);
     expect(shuffled.map((g) => g.steamAppId).sort()).toEqual([1, 2, 3]);
     expect(games.map((g) => g.steamAppId)).toEqual([1, 2, 3]); // wejście nietknięte
+  });
+});
+
+describe("matchesMultiplayerFilter", () => {
+  it("matches everything for 'all'", () => {
+    expect(matchesMultiplayerFilter([], "all")).toBe(true);
+  });
+
+  it("matches only single-player tag for 'solo'", () => {
+    expect(matchesMultiplayerFilter(["Jednoosobowa"], "solo")).toBe(true);
+    expect(matchesMultiplayerFilter(["Wieloosobowa"], "solo")).toBe(false);
+  });
+
+  it("matches multiplayer or co-op tags for 'multi'", () => {
+    expect(matchesMultiplayerFilter(["Wieloosobowa"], "multi")).toBe(true);
+    expect(matchesMultiplayerFilter(["Kooperacja"], "multi")).toBe(true);
+    expect(matchesMultiplayerFilter(["Jednoosobowa"], "multi")).toBe(false);
   });
 });
 
