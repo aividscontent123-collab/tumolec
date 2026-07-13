@@ -19,8 +19,8 @@ type DetailsResponse = {
 
 function matchesMultiplayerFilter(tags: string[], filter: MultiplayerFilter): boolean {
   if (filter === "all") return true;
-  if (filter === "solo") return tags.includes("Single-player");
-  return tags.includes("Multi-player") || tags.includes("Co-op");
+  if (filter === "solo") return tags.includes("Jednoosobowa");
+  return tags.includes("Wieloosobowa") || tags.includes("Kooperacja");
 }
 
 /** Solo: żadnego zapisu do Firestore, żadnego pokoju -- decyzje żyją tylko
