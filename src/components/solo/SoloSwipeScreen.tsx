@@ -105,7 +105,7 @@ export function SoloSwipeScreen({
             To wszystkie gry pasujące do Twoich filtrów.
           </p>
         ) : currentCard ? (
-          <SwipeCard game={currentCard} onSwipe={handleSwipe} />
+          <SwipeCard key={currentCard.steamAppId} game={currentCard} onSwipe={handleSwipe} />
         ) : null}
       </div>
 

@@ -53,7 +53,7 @@ export function SoloSettingsScreen({
         return;
       }
       router.push(`/room/${code}`);
-    } catch (error) {
+    } catch {
       setJoinError("Nie udało się sprawdzić kodu pokoju. Spróbuj ponownie.");
       setJoining(false);
     }
