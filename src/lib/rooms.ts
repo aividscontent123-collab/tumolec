@@ -20,6 +20,7 @@ import {
   Timestamp,
   updateDoc,
   where,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { SwipeGame } from "@/lib/types";
@@ -423,4 +424,51 @@ export function subscribeToPlinko(roomCode: string, onChange: (plinko: PlinkoSta
   return onSnapshot(plinkoStateRef(roomCode), (snap) => {
     onChange(snap.exists() ? ((snap.data().plinko as PlinkoState | undefined) ?? null) : null);
   });
+}
+
+// ── Import biblioteki Steam / wspólna biblioteka ────────────────────────────
+
+/** Wsadowo dodaje referencje gier do puli pokoju. Zakłada, że steam_cache dla
+ * każdego appId już istnieje (patrz hydrateAndAddGamesToPool) -- w przeciwnym
+ * razie GamePoolList pokaże tytuł "…" do czasu odświeżenia. */
+export async function addGamesToPoolBatch(roomCode: string, steamAppIds: number[], addedBy: string) {
+  if (steamAppIds.length === 0) return;
+  const batch = writeBatch(db);
+  for (const steamAppId of steamAppIds) {
+    batch.set(doc(db, "rooms", roomCode, "games", String(steamAppId)), {
+      steamAppId,
+      addedBy,
+      status: "active",
+      addedAt: serverTimestamp(),
+    });
+  }
+  await batch.commit();
+}
+
+/** Dociąga /api/steam/details dla appid-ów, które nigdy nie miały wywołanego
+ * appdetails (import biblioteki daje tylko appid+playtime) -- to jednocześnie
+ * populuje steam_cache i, jeśli podano tagFilter, pozwala odfiltrować przed
+ * dodaniem do puli (np. tylko gry wieloosobowe dla wspólnej biblioteki).
+ * Sekwencyjnie: realistyczne rozmiary po filtrze backlogu to dziesiątki gier,
+ * nie setki -- zob. spec sekcja 2 "Wydajność". */
+export async function hydrateAndAddGamesToPool(
+  roomCode: string,
+  steamAppIds: number[],
+  addedBy: string,
+  tagFilter?: (tags: string[]) => boolean,
+): Promise<number> {
+  const validIds: number[] = [];
+  for (const steamAppId of steamAppIds) {
+    try {
+      const res = await fetch(`/api/steam/details?appid=${steamAppId}`);
+      if (!res.ok) continue;
+      const data = (await res.json()) as { tags?: string[] };
+      if (tagFilter && !tagFilter(data.tags ?? [])) continue;
+      validIds.push(steamAppId);
+    } catch {
+      continue;
+    }
+  }
+  await addGamesToPoolBatch(roomCode, validIds, addedBy);
+  return validIds.length;
 }
