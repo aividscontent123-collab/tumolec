@@ -33,3 +33,14 @@ export function shuffleGames(games: SteamOwnedGame[]): SteamOwnedGame[] {
   }
   return result;
 }
+
+/** Część wspólna bibliotek Steam uczestników pokoju, liczona z co najmniej
+ * dwóch niepustych list -- mniej niż dwie biblioteki = nic do przecięcia. */
+export function computeSharedLibrary(participants: { steamLibraryAppIds?: number[] }[]): number[] {
+  const libraries = participants
+    .map((p) => p.steamLibraryAppIds)
+    .filter((ids): ids is number[] => Array.isArray(ids) && ids.length > 0);
+  if (libraries.length < 2) return [];
+  const [first, ...rest] = libraries;
+  return first.filter((appId) => rest.every((lib) => lib.includes(appId)));
+}

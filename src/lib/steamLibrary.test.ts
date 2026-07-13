@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterByPlaytime, shuffleGames, type SteamOwnedGame } from "./steamLibrary";
+import { computeSharedLibrary, filterByPlaytime, shuffleGames, type SteamOwnedGame } from "./steamLibrary";
 
 function game(steamAppId: number, playtimeMinutes: number): SteamOwnedGame {
   return { steamAppId, name: `Game ${steamAppId}`, playtimeMinutes };
@@ -39,5 +39,33 @@ describe("shuffleGames", () => {
     expect(shuffled).not.toBe(games);
     expect(shuffled.map((g) => g.steamAppId).sort()).toEqual([1, 2, 3]);
     expect(games.map((g) => g.steamAppId)).toEqual([1, 2, 3]); // wejście nietknięte
+  });
+});
+
+describe("computeSharedLibrary", () => {
+  it("returns empty when fewer than 2 participants have a library", () => {
+    expect(computeSharedLibrary([{ steamLibraryAppIds: [1, 2, 3] }, {}])).toEqual([]);
+  });
+
+  it("returns the intersection of all participants' libraries", () => {
+    const result = computeSharedLibrary([
+      { steamLibraryAppIds: [1, 2, 3, 4] },
+      { steamLibraryAppIds: [2, 3, 4, 5] },
+      { steamLibraryAppIds: [3, 4, 5, 6] },
+    ]);
+    expect(result.sort()).toEqual([3, 4]);
+  });
+
+  it("returns empty when libraries don't overlap", () => {
+    expect(computeSharedLibrary([{ steamLibraryAppIds: [1, 2] }, { steamLibraryAppIds: [3, 4] }])).toEqual([]);
+  });
+
+  it("ignores participants without a library when computing overlap", () => {
+    const result = computeSharedLibrary([
+      { steamLibraryAppIds: [1, 2] },
+      {},
+      { steamLibraryAppIds: [1, 2] },
+    ]);
+    expect(result.sort()).toEqual([1, 2]);
   });
 });
