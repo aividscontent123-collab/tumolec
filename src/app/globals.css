@@ -161,7 +161,10 @@
 
 @layer utilities {
   .bg-app-gradient {
-    background: linear-gradient(180deg, var(--gradient-top) 0%, var(--gradient-bottom) 100%);
+    background:
+      radial-gradient(60% 40% at 15% 10%, var(--accent-brand-soft) 0%, transparent 70%),
+      radial-gradient(50% 35% at 85% 25%, var(--accent-brand-soft) 0%, transparent 70%),
+      linear-gradient(180deg, var(--gradient-top) 0%, var(--gradient-bottom) 100%);
   }
 }
 
