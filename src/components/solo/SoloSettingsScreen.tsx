@@ -46,12 +46,17 @@ export function SoloSettingsScreen({
     if (!code) return;
     setJoining(true);
     setJoinError(null);
-    if (!(await roomExists(code))) {
-      setJoinError(`Nie znaleziono pokoju o kodzie ${code}.`);
+    try {
+      if (!(await roomExists(code))) {
+        setJoinError(`Nie znaleziono pokoju o kodzie ${code}.`);
+        setJoining(false);
+        return;
+      }
+      router.push(`/room/${code}`);
+    } catch (error) {
+      setJoinError("Nie udało się sprawdzić kodu pokoju. Spróbuj ponownie.");
       setJoining(false);
-      return;
     }
-    router.push(`/room/${code}`);
   }
 
   return (
