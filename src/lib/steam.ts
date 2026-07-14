@@ -19,6 +19,12 @@ export type SteamCacheEntry = {
   minRequirements: string;
   recRequirements: string;
   cachedAt: number;
+  developers: string[];
+  releaseDate: { comingSoon: boolean; date: string } | null;
+  screenshots: string[];
+  trailerHlsUrl: string | null;
+  trailerThumbnail: string | null;
+  totalReviews: number;
 };
 
 export async function searchSteamGames(term: string): Promise<SteamSearchResult[]> {
@@ -33,20 +39,20 @@ export async function searchSteamGames(term: string): Promise<SteamSearchResult[
   }));
 }
 
-type AppDetailsResponse = Record<
-  string,
-  {
-    success: boolean;
-    data?: {
-      name: string;
-      header_image: string;
-      short_description: string;
-      genres?: { description: string }[];
-      categories?: { description: string }[];
-      pc_requirements?: { minimum?: string; recommended?: string } | [];
-    };
-  }
->;
+type RawAppDetailsData = {
+  name: string;
+  header_image: string;
+  short_description: string;
+  genres?: { description: string }[];
+  categories?: { description: string }[];
+  pc_requirements?: { minimum?: string; recommended?: string } | [];
+  developers?: string[];
+  release_date?: { coming_soon: boolean; date: string };
+  screenshots?: { id: number; path_thumbnail: string; path_full: string }[];
+  movies?: { id: number; name: string; thumbnail: string; hls_h264?: string; highlight?: boolean }[];
+};
+
+type AppDetailsResponse = Record<string, { success: boolean; data?: RawAppDetailsData }>;
 
 type AppReviewsResponse = {
   query_summary?: {
@@ -56,29 +62,21 @@ type AppReviewsResponse = {
   };
 };
 
-export async function fetchSteamGameDetails(steamAppId: number): Promise<SteamCacheEntry> {
-  const detailsUrl = `https://store.steampowered.com/api/appdetails?appids=${steamAppId}&l=polish`;
-  const reviewsUrl = `https://store.steampowered.com/appreviews/${steamAppId}?json=1&language=polish&purchase_type=all`;
-
-  const [detailsRes, reviewsRes] = await Promise.all([fetch(detailsUrl), fetch(reviewsUrl)]);
-  if (!detailsRes.ok) throw new Error(`appdetails failed: ${detailsRes.status}`);
-  if (!reviewsRes.ok) throw new Error(`appreviews failed: ${reviewsRes.status}`);
-
-  const details = (await detailsRes.json()) as AppDetailsResponse;
-  const entry = details[String(steamAppId)];
-  if (!entry?.success || !entry.data) {
-    throw new Error(`Steam nie zwrócił danych dla appid ${steamAppId}`);
-  }
-  const data = entry.data;
-  const reviews = (await reviewsRes.json()) as AppReviewsResponse;
+/** Czysta funkcja parsowania -- wydzielona z fetchSteamGameDetails żeby dało
+ * się ją testować bez sieci. steamAppId niewykorzystywany dziś w wyniku, ale
+ * zostaje w sygnaturze na wypadek przyszłej walidacji spójności appid<->data. */
+export function parseSteamAppDetails(
+  steamAppId: number,
+  data: RawAppDetailsData,
+  reviews: AppReviewsResponse,
+): SteamCacheEntry {
   const summary = reviews.query_summary;
-
   const tags = [
     ...(data.genres ?? []).map((g) => g.description),
     ...(data.categories ?? []).map((c) => c.description),
   ];
-
   const requirements = Array.isArray(data.pc_requirements) ? {} : (data.pc_requirements ?? {});
+  const movie = data.movies?.[0];
 
   return {
     name: data.name,
@@ -94,5 +92,29 @@ export async function fetchSteamGameDetails(steamAppId: number): Promise<SteamCa
     minRequirements: requirements.minimum ?? "",
     recRequirements: requirements.recommended ?? "",
     cachedAt: Date.now(),
+    developers: data.developers ?? [],
+    releaseDate: data.release_date ? { comingSoon: data.release_date.coming_soon, date: data.release_date.date } : null,
+    screenshots: (data.screenshots ?? []).map((s) => s.path_full),
+    trailerHlsUrl: movie?.hls_h264 ?? null,
+    trailerThumbnail: movie?.thumbnail ?? null,
+    totalReviews: summary?.total_reviews ?? 0,
   };
+}
+
+export async function fetchSteamGameDetails(steamAppId: number): Promise<SteamCacheEntry> {
+  const detailsUrl = `https://store.steampowered.com/api/appdetails?appids=${steamAppId}&l=polish`;
+  const reviewsUrl = `https://store.steampowered.com/appreviews/${steamAppId}?json=1&language=polish&purchase_type=all`;
+
+  const [detailsRes, reviewsRes] = await Promise.all([fetch(detailsUrl), fetch(reviewsUrl)]);
+  if (!detailsRes.ok) throw new Error(`appdetails failed: ${detailsRes.status}`);
+  if (!reviewsRes.ok) throw new Error(`appreviews failed: ${reviewsRes.status}`);
+
+  const details = (await detailsRes.json()) as AppDetailsResponse;
+  const entry = details[String(steamAppId)];
+  if (!entry?.success || !entry.data) {
+    throw new Error(`Steam nie zwrócił danych dla appid ${steamAppId}`);
+  }
+  const reviews = (await reviewsRes.json()) as AppReviewsResponse;
+
+  return parseSteamAppDetails(steamAppId, entry.data, reviews);
 }
