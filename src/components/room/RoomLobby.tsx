@@ -7,6 +7,7 @@ import { subscribeToParticipants, subscribeToRoom, joinRoom, type Participant } 
 import { useParticipant } from "@/lib/useParticipant";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { filterByPlaytime, type BacklogFilter } from "@/lib/steamLibrary";
+import { MiniGameLauncher } from "@/components/minigames/MiniGameLauncher";
 
 const AVATAR_COLORS = ["#c2703d", "#2fb3a0", "#8b5cf6", "#e05e8f"];
 
@@ -191,26 +192,6 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
         >
           Pula gier →
         </Link>
-        <div className="flex gap-3">
-          <Link
-            href={`/room/${roomCode}/coinflip`}
-            className="bg-secondary flex-1 rounded-full py-3 text-center text-sm font-bold text-foreground"
-          >
-            Rzut monetą
-          </Link>
-          <Link
-            href={`/room/${roomCode}/wheel`}
-            className="bg-secondary flex-1 rounded-full py-3 text-center text-sm font-bold text-foreground"
-          >
-            Koło fortuny
-          </Link>
-        </div>
-        <Link
-          href={`/room/${roomCode}/plinko`}
-          className="bg-secondary rounded-full py-3 text-center text-sm font-bold text-foreground"
-        >
-          Plinko
-        </Link>
         <Link
           href={`/room/${roomCode}/history`}
           className="bg-secondary rounded-full py-3 text-center text-sm font-bold text-foreground"
@@ -218,6 +199,7 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
           Historia
         </Link>
       </div>
+      <MiniGameLauncher mode={{ kind: "room", roomCode }} />
     </main>
   );
 }
