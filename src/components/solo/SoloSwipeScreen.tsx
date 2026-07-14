@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import type { SwipeGame } from "@/lib/types";
@@ -165,7 +166,9 @@ export function SoloSwipeScreen({
             To wszystkie gry pasujące do Twoich filtrów.
           </p>
         ) : currentCard ? (
-          <SwipeCard key={currentCard.steamAppId} game={currentCard} onSwipe={handleSwipe} />
+          <GameDetailLayout key={currentCard.steamAppId} game={currentCard}>
+            <SwipeCard key={currentCard.steamAppId} game={currentCard} onSwipe={handleSwipe} />
+          </GameDetailLayout>
         ) : null}
       </div>
 
