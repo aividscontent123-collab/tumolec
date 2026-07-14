@@ -15,6 +15,7 @@ export function SharedLibrarySection({
 }) {
   const [adding, setAdding] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const withLibrary = participants.filter((p) => (p.steamLibraryAppIds?.length ?? 0) > 0);
   if (withLibrary.length < 2) return null;
@@ -31,26 +32,35 @@ export function SharedLibrarySection({
   async function handleAdd() {
     setAdding(true);
     setResult(null);
-    const added = await hydrateAndAddGamesToPool(roomCode, shared, participantId, (tags) =>
-      matchesMultiplayerFilter(tags, "multi"),
-    );
-    setResult(`Dodano ${added} gier.`);
-    setAdding(false);
+    setError(null);
+    try {
+      const added = await hydrateAndAddGamesToPool(roomCode, shared, participantId, (tags) =>
+        matchesMultiplayerFilter(tags, "multi"),
+      );
+      setResult(`Dodano ${added} gier.`);
+    } catch {
+      setError("Nie udało się dodać gier. Spróbuj ponownie.");
+    } finally {
+      setAdding(false);
+    }
   }
 
   return (
-    <div className="bg-card border-border flex items-center justify-between rounded-xl border p-3">
-      <span className="text-sm text-foreground">
-        Gry, które macie wspólnie ({shared.length})
-      </span>
-      <button
-        type="button"
-        onClick={handleAdd}
-        disabled={adding}
-        className="bg-accent-brand shrink-0 rounded-full px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
-      >
-        {adding ? "Dodaję…" : result ?? "Dodaj do puli"}
-      </button>
+    <div className="bg-card border-border rounded-xl border p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-foreground">
+          Gry, które macie wspólnie ({shared.length})
+        </span>
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={adding}
+          className="bg-accent-brand shrink-0 rounded-full px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+        >
+          {adding ? "Dodaję…" : result ?? "Dodaj do puli"}
+        </button>
+      </div>
+      {error && <p className="text-pass mt-2 text-sm">{error}</p>}
     </div>
   );
 }

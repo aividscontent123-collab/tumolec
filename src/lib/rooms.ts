@@ -433,8 +433,16 @@ export function subscribeToPlinko(roomCode: string, onChange: (plinko: PlinkoSta
  * razie GamePoolList pokaże tytuł "…" do czasu odświeżenia. */
 export async function addGamesToPoolBatch(roomCode: string, steamAppIds: number[], addedBy: string) {
   if (steamAppIds.length === 0) return;
+  // Firestore rules only allow updating status/playedAt on existing game docs, not
+  // addedAt/addedBy -- a plain batch.set() over an existing doc is rejected as
+  // PERMISSION_DENIED. Skip appIds already in the pool so this only ever creates.
+  const existing = await getDocs(collection(db, "rooms", roomCode, "games"));
+  const existingIds = new Set(existing.docs.map((d) => d.id));
+  const newIds = steamAppIds.filter((id) => !existingIds.has(String(id)));
+  if (newIds.length === 0) return;
+
   const batch = writeBatch(db);
-  for (const steamAppId of steamAppIds) {
+  for (const steamAppId of newIds) {
     batch.set(doc(db, "rooms", roomCode, "games", String(steamAppId)), {
       steamAppId,
       addedBy,
