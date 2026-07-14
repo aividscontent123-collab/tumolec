@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ToggleChip } from "@/components/ui/ToggleChip";
-import { roomExists } from "@/lib/rooms";
+import { roomExists, createRoom, joinRoom } from "@/lib/rooms";
 import type { BacklogFilter, MultiplayerFilter } from "@/lib/steamLibrary";
 
 const BACKLOG_OPTIONS: { value: BacklogFilter; label: string }[] = [
@@ -37,6 +37,10 @@ export function SoloSettingsScreen({
   const [showJoin, setShowJoin] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createNickname, setCreateNickname] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   async function handleJoinByCode(e: React.FormEvent) {
     e.preventDefault();
@@ -54,6 +58,25 @@ export function SoloSettingsScreen({
     } catch {
       setJoinError("Nie udało się sprawdzić kodu pokoju. Spróbuj ponownie.");
       setJoining(false);
+    }
+  }
+
+  async function handleCreateRoom(e: React.FormEvent) {
+    e.preventDefault();
+    const nickname = createNickname.trim();
+    if (!nickname) return;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const code = await createRoom("Wieczór gier");
+      const id = crypto.randomUUID();
+      await joinRoom(code, id, nickname);
+      localStorage.setItem(`tumolec:${code}:participantId`, id);
+      localStorage.setItem(`tumolec:${code}:nickname`, nickname);
+      router.push(`/room/${code}`);
+    } catch {
+      setCreateError("Nie udało się utworzyć pokoju. Spróbuj ponownie.");
+      setCreating(false);
     }
   }
 
@@ -105,6 +128,32 @@ export function SoloSettingsScreen({
           <Link href="/packages" className="text-text-secondary text-center text-sm underline">
             Zapisane paczki gier
           </Link>
+          <button
+            type="button"
+            onClick={() => setShowCreate((v) => !v)}
+            className="text-text-secondary text-center text-sm underline"
+          >
+            Stwórz pokój dla znajomych
+          </button>
+          {showCreate && (
+            <form onSubmit={handleCreateRoom} className="mt-2 flex w-full gap-2">
+              <input
+                value={createNickname}
+                onChange={(e) => setCreateNickname(e.target.value)}
+                placeholder="Twój pseudonim"
+                maxLength={24}
+                className="bg-card border-border flex-1 rounded-xl border px-4 py-3 text-foreground"
+              />
+              <button
+                type="submit"
+                disabled={creating}
+                className="bg-accent-brand rounded-xl px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
+              >
+                Stwórz
+              </button>
+            </form>
+          )}
+          {createError && <p className="text-pass text-sm">{createError}</p>}
           <button
             type="button"
             onClick={() => setShowJoin((v) => !v)}
