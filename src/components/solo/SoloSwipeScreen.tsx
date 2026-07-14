@@ -7,6 +7,7 @@ import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import type { SwipeGame } from "@/lib/types";
 import { matchesMultiplayerFilter, type MultiplayerFilter, type SteamOwnedGame } from "@/lib/steamLibrary";
 import { createRoom, joinRoom, hydrateAndAddGamesToPool } from "@/lib/rooms";
+import { MiniGameLauncher } from "@/components/minigames/MiniGameLauncher";
 
 type DetailsResponse = {
   steamAppId: number;
@@ -155,6 +156,7 @@ export function SoloSwipeScreen({
       </div>
 
       {!exhausted && !loadingCard && <SwipeActionButtons onPass={handleSwipe} onLike={handleSwipe} />}
+      <MiniGameLauncher mode={{ kind: "solo" }} />
     </main>
   );
 }
