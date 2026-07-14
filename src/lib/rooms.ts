@@ -257,10 +257,15 @@ export async function finishRound(roomCode: string, roundId: string, survivors: 
 // (pole `wheel`, inny agent). Piszemy wyłącznie przez `{ merge: true }` na
 // samym polu `coinflip`, żeby nigdy nie nadpisać `wheel` przy scaleniu.
 
+/** Strukturalny podzbiór Firestore Timestamp -- pozwala trybowi solo (bez
+ * Firestore) budować kompatybilny obiekt `{ toMillis: () => Date.now() }`
+ * zamiast prawdziwego serverTimestamp(). */
+export type TimestampLike = { toMillis(): number };
+
 export type CoinflipState = {
   result: "heads" | "tails" | null;
   spinning: boolean;
-  triggeredAt: Timestamp | null;
+  triggeredAt: TimestampLike | null;
 };
 
 /** Losuje wynik po stronie klienta i publikuje go od razu -- wszyscy
