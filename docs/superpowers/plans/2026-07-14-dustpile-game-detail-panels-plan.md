@@ -1027,12 +1027,14 @@ Zamień na:
             To wszystkie gry pasujące do Twoich filtrów.
           </p>
         ) : currentCard ? (
-          <GameDetailLayout game={currentCard}>
+          <GameDetailLayout key={currentCard.steamAppId} game={currentCard}>
             <SwipeCard key={currentCard.steamAppId} game={currentCard} onSwipe={handleSwipe} />
           </GameDetailLayout>
         ) : null}
       </div>
 ```
+
+**Uwaga (dodana po code review Tasku 5):** `key={currentCard.steamAppId}` na `GameDetailLayout` (nie tylko na wewnętrznej `SwipeCard`) jest wymagany -- bez niego `GameDetailLayout` nie remontuje się przy zmianie gry, więc lokalny stan `MediaPanel` (otwarty lightbox ze screenshotem) i `GameDetailLayout` (który mobilny panel jest rozwinięty) przetrwałby swipe do następnej gry, pokazując dane starej gry. Ten sam wzorzec co istniejący `key` na `SwipeCard` -- pełny remount przy zmianie `steamAppId`.
 
 - [ ] **Step 3: Zweryfikuj build i ręcznie**
 
@@ -1077,11 +1079,13 @@ Zamień na:
 
 ```tsx
       <main className="min-h-0 flex-1 px-[22px] pb-[18px]">
-        <GameDetailLayout game={currentGame}>
+        <GameDetailLayout key={currentGame.steamAppId} game={currentGame}>
           <SwipeCard key={currentGame.steamAppId} game={currentGame} onSwipe={handleSwipe} />
         </GameDetailLayout>
       </main>
 ```
+
+**Uwaga (dodana po code review Tasku 5):** `key={currentGame.steamAppId}` na `GameDetailLayout` wymagany z tego samego powodu co w Tasku 9 (Solo) -- bez niego stan lokalny `MediaPanel`/akordeonu przetrwałby zmianę gry między rundami.
 
 **Uwaga:** `currentGame` w tym pliku ma typ `PoolGame` (z `gameByAppId.get(myDeck[0])`, gdzie `PoolGame` rozszerza `SwipeGame` polami pokoju typu `addedBy`/`status`/`playedAt` -- patrz `src/lib/rooms.ts`). `PoolGame` musi mieć te same nowe pola co `SwipeGame` (już dodane w Task 2 Step 3, `src/lib/rooms.ts`) -- jeśli build w tym kroku pokazuje błąd typu "Property X missing on PoolGame", to znaczy że Task 2 Step 3 nie objął wszystkich miejsc budujących `PoolGame`; znajdź brakujące miejsce przez komunikat błędu i dodaj pola tam.
 
