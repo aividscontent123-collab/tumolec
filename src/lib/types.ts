@@ -8,4 +8,11 @@ export type SwipeGame = {
   tags: string[];
   reviewScorePercent: number;
   reviewSummary: string;
+  shortDescription: string;
+  developers: string[];
+  releaseDate: { comingSoon: boolean; date: string } | null;
+  screenshots: string[];
+  trailerHlsUrl: string | null;
+  trailerThumbnail: string | null;
+  totalReviews: number;
 };

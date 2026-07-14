@@ -10,6 +10,13 @@ const demoGame: SwipeGame = {
   tags: ["Co-op", "Chaotyczne", "1-4 graczy"],
   reviewScorePercent: 96,
   reviewSummary: "Bardzo pozytywne",
+  shortDescription: "Rakietowa, chaotyczna kooperacyjna gra kucharska dla 1-4 graczy.",
+  developers: ["Ghost Town Games"],
+  releaseDate: { comingSoon: false, date: "7 sierpnia 2018" },
+  screenshots: [],
+  trailerHlsUrl: null,
+  trailerThumbnail: null,
+  totalReviews: 12000,
 };
 
 const participants = [

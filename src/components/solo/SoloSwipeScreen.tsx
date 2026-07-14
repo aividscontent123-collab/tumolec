@@ -16,6 +16,13 @@ type DetailsResponse = {
   tags: string[];
   reviewScorePercent: number;
   reviewSummary: string;
+  shortDescription: string;
+  developers: string[];
+  releaseDate: { comingSoon: boolean; date: string } | null;
+  screenshots: string[];
+  trailerHlsUrl: string | null;
+  trailerThumbnail: string | null;
+  totalReviews: number;
   error?: string;
 };
 
@@ -60,6 +67,13 @@ export function SoloSwipeScreen({
           tags: data.tags,
           reviewScorePercent: data.reviewScorePercent,
           reviewSummary: data.reviewSummary,
+          shortDescription: data.shortDescription,
+          developers: data.developers,
+          releaseDate: data.releaseDate,
+          screenshots: data.screenshots,
+          trailerHlsUrl: data.trailerHlsUrl,
+          trailerThumbnail: data.trailerThumbnail,
+          totalReviews: data.totalReviews,
         });
         setLoadingCard(false);
         return;

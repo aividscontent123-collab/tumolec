@@ -106,6 +106,13 @@ function toPoolGame(gameDoc: QueryDocumentSnapshot<DocumentData>, cache: Documen
     tags: cache?.tags ?? [],
     reviewScorePercent: cache?.reviewScorePercent ?? 0,
     reviewSummary: cache?.reviewSummary ?? "",
+    shortDescription: cache?.shortDescription ?? "",
+    developers: cache?.developers ?? [],
+    releaseDate: cache?.releaseDate ?? null,
+    screenshots: cache?.screenshots ?? [],
+    trailerHlsUrl: cache?.trailerHlsUrl ?? null,
+    trailerThumbnail: cache?.trailerThumbnail ?? null,
+    totalReviews: cache?.totalReviews ?? 0,
   };
 }
 
