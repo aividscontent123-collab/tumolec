@@ -32,7 +32,7 @@ export type SteamCacheEntry = {
   developers: string[];
   releaseDate: { comingSoon: boolean; date: string } | null;
   screenshots: string[];        // path_full URLs
-  trailerUrl: string | null;    // movies[0].mp4.max
+  trailerHlsUrl: string | null;    // movies[0].hls_h264
   trailerThumbnail: string | null; // movies[0].thumbnail
   totalReviews: number;         // już liczone dziś (query_summary.total_reviews), dotąd nieeksponowane
 };
@@ -75,7 +75,7 @@ Zmiana wizualna, mechanika gestu (`useDrag`, `framer-motion`, `decideSwipeDirect
 
 ### `MediaPanel` (nowy, `src/components/swipe/MediaPanel.tsx`)
 
-- Jeśli `trailerUrl` istnieje: natywny `<video controls poster={trailerThumbnail} src={trailerUrl} />` — bez custom playera, przeglądarka daje kontrolki za darmo.
+- Jeśli `trailerHlsUrl` istnieje: `<video controls poster={trailerThumbnail}>` odtwarzający strumień HLS. **Zweryfikowane na żywym API (2026-07-14)**: współczesny Steam `appdetails` nie zwraca już bezpośredniego pliku mp4/webm, tylko manifesty HLS (`.m3u8`) i DASH (`.mpd`) — HLS gra natywnie tylko w Safari/iOS. Odtwarzacz używa `hls.js` (nowa zależność, ~30-60KB gzip) jako fallback wszędzie indziej (Chrome/Firefox/Android): jeśli `video.canPlayType("application/vnd.apple.mpegurl")` prawda → natywny `src` (Safari); inaczej `Hls.isSupported()` → `hls.loadSource()`+`attachMedia()`.
 - Jeśli `screenshots.length > 0`: siatka miniatur pod trailerem (lub samodzielnie, jeśli brak trailera). Klik na miniaturę otwiera pełny rozmiar w prostym lightboxie (ten sam wzorzec overlay + `stopPropagation`, co istniejący `MiniGameLauncher`).
 - Jeśli ani trailera, ani screenshotów: komponent zwraca `null`, `GameDetailLayout` go pomija, chip "Media" na telefonie się nie pokazuje.
 
