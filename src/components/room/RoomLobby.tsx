@@ -5,6 +5,8 @@ import Link from "next/link";
 import QRCode from "qrcode";
 import { subscribeToParticipants, subscribeToRoom, joinRoom, type Participant } from "@/lib/rooms";
 import { useParticipant } from "@/lib/useParticipant";
+import { ToggleChip } from "@/components/ui/ToggleChip";
+import { filterByPlaytime, type BacklogFilter } from "@/lib/steamLibrary";
 
 const AVATAR_COLORS = ["#c2703d", "#2fb3a0", "#8b5cf6", "#e05e8f"];
 
@@ -14,6 +16,8 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [joinNickname, setJoinNickname] = useState("");
   const [joining, setJoining] = useState(false);
+  const [joinProfile, setJoinProfile] = useState("");
+  const [joinBacklog, setJoinBacklog] = useState<BacklogFilter>("never");
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -73,7 +77,20 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
       if (!joinNickname.trim()) return;
       setJoining(true);
       const id = crypto.randomUUID();
-      await joinRoom(roomCode, id, joinNickname.trim());
+      let steamLibraryAppIds: number[] | undefined;
+      if (joinProfile.trim()) {
+        try {
+          const res = await fetch(`/api/steam/library?profile=${encodeURIComponent(joinProfile.trim())}`);
+          const data = (await res.json()) as { games?: { steamAppId: number; playtimeMinutes: number }[] };
+          if (res.ok && data.games) {
+            steamLibraryAppIds = filterByPlaytime(data.games as never, joinBacklog).map((g) => g.steamAppId);
+          }
+        } catch {
+          // ponytail: brak biblioteki nie blokuje dolaczenia, wspolna biblioteka
+          // po prostu nie bedzie uwzgledniac tego uczestnika
+        }
+      }
+      await joinRoom(roomCode, id, joinNickname.trim(), steamLibraryAppIds);
       save(id, joinNickname.trim());
       setJoining(false);
     }
@@ -93,6 +110,25 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
               maxLength={24}
               className="bg-card border-border rounded-xl border px-4 py-3 text-foreground"
             />
+            <input
+              value={joinProfile}
+              onChange={(e) => setJoinProfile(e.target.value)}
+              placeholder="Twój profil Steam (opcjonalnie)"
+              className="bg-card border-border rounded-xl border px-4 py-3 text-foreground"
+            />
+            {joinProfile.trim() && (
+              <ToggleChip
+                value={joinBacklog}
+                options={[
+                  { value: "never", label: "Nigdy nie grane" },
+                  { value: "under2h", label: "Poniżej 2h" },
+                  { value: "under10h", label: "Poniżej 10h" },
+                  { value: "abandoned", label: "Porzucone" },
+                ]}
+                onChange={setJoinBacklog}
+                columns={2}
+              />
+            )}
             <button
               type="submit"
               disabled={joining}
