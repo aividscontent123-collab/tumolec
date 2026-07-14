@@ -72,23 +72,38 @@ export function SwipeCard({
   // `bind()` includes a native `onDrag` (HTML5 drag events) that collides with
   // framer-motion's own (unused) drag prop of the same name -- cast past it,
   // we drive the gesture through @use-gesture's pointer handlers, not motion's.
+  const releaseYear = game.releaseDate?.date.match(/\d{4}$/u)?.[0];
+  const subtitle = [releaseYear, game.developers.join(", ")].filter(Boolean).join(" · ");
+
   return (
     <motion.div
       {...(bind() as object)}
       style={{ x, y, rotate, boxShadow: glowShadow, touchAction: "pan-y" }}
-      className="rounded-card relative h-full w-full cursor-grab overflow-hidden active:cursor-grabbing"
+      className="rounded-card bg-card border-border relative flex h-full w-full cursor-grab flex-col overflow-hidden border active:cursor-grabbing"
     >
-      <div className="absolute inset-0">
+      <motion.div
+        style={{ opacity: likeOpacity }}
+        className="border-rating text-rating absolute top-6 left-6 z-10 -rotate-12 rounded-xl border-4 px-3 py-1 text-xl font-extrabold tracking-wide uppercase"
+      >
+        Gramy
+      </motion.div>
+      <motion.div
+        style={{ opacity: passOpacity }}
+        className="border-pass text-pass absolute top-6 right-6 z-10 rotate-12 rounded-xl border-4 px-3 py-1 text-xl font-extrabold tracking-wide uppercase"
+      >
+        Pas
+      </motion.div>
+
+      <div className="relative mx-auto mt-5 aspect-[3/4] w-3/5 shrink-0 overflow-hidden rounded-xl">
         {game.coverImageUrl && imgSrc ? (
           <Image
             src={imgSrc}
             alt={game.title}
             fill
             className="pointer-events-none object-cover"
-            sizes="(max-width: 500px) 100vw, 500px"
+            sizes="(max-width: 500px) 60vw, 300px"
             draggable={false}
             onError={() => {
-              // Portret nie istnieje -> spadamy na poziomy header raz (na steamAppId).
               if (!portraitFailed) setPortraitFailed(true);
             }}
           />
@@ -104,60 +119,34 @@ export function SwipeCard({
         )}
       </div>
 
-      <motion.div
-        style={{ opacity: likeOpacity }}
-        className="border-rating text-rating absolute top-6 left-6 -rotate-12 rounded-xl border-4 px-3 py-1 text-xl font-extrabold tracking-wide uppercase"
-      >
-        Gramy
-      </motion.div>
-      <motion.div
-        style={{ opacity: passOpacity }}
-        className="border-pass text-pass absolute top-6 right-6 rotate-12 rounded-xl border-4 px-3 py-1 text-xl font-extrabold tracking-wide uppercase"
-      >
-        Pas
-      </motion.div>
-
-      <div className="absolute top-0 right-0 left-0 flex justify-end p-4">
-        <div
-          className="rounded-full px-3.5 py-2 text-right backdrop-blur-md"
-          style={{ backgroundColor: "rgba(10,12,20,0.55)" }}
-        >
-          <div className="font-heading text-rating text-sm font-bold">
-            {game.reviewScorePercent}% Steam
-          </div>
-          <div className="text-text-secondary text-[10px]">{game.reviewSummary}</div>
-        </div>
-      </div>
-
-      <div className="swipe-card-scrim absolute inset-x-0 bottom-0 flex flex-col gap-2 p-[22px] pt-24">
-        <h2 className="font-heading text-[30px] leading-tight font-bold text-foreground">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-[22px]">
+        <h2 className="font-heading text-center text-[24px] leading-tight font-bold text-foreground">
           {game.title}
         </h2>
-        <div className="flex flex-wrap gap-2">
+        {subtitle && <p className="text-text-secondary text-center text-sm">{subtitle}</p>}
+
+        <div className="flex flex-wrap justify-center gap-2">
           {game.tags.map((tag) => (
             <span
               key={tag}
-              className="rounded-full border px-3 py-1 text-xs font-semibold text-foreground"
-              style={{
-                backgroundColor: "rgba(255,255,255,0.1)",
-                borderColor: "rgba(255,255,255,0.14)",
-              }}
+              className="bg-secondary rounded-full px-3 py-1 text-xs font-semibold text-foreground"
             >
               {tag}
             </span>
           ))}
         </div>
+
+        {game.shortDescription && (
+          <p className="text-text-secondary text-sm">{game.shortDescription}</p>
+        )}
+
         <a
           href={`https://store.steampowered.com/app/${game.steamAppId}`}
           target="_blank"
           rel="noopener noreferrer"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
-          className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/15 active:scale-95"
-          style={{
-            backgroundColor: "rgba(255,255,255,0.1)",
-            borderColor: "rgba(255,255,255,0.14)",
-          }}
+          className="bg-secondary mx-auto mt-1 inline-flex w-fit items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-white/15 active:scale-95"
         >
           <ExternalLink className="h-3.5 w-3.5" />
           Szczegóły na Steam
