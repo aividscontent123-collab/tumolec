@@ -2,19 +2,25 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { subscribeToGamePool, type PoolGame } from "@/lib/rooms";
+import { subscribeToGamePool, subscribeToParticipants, type PoolGame, type Participant } from "@/lib/rooms";
 import { useParticipant } from "@/lib/useParticipant";
 import { AddGameForm } from "@/components/room/AddGameForm";
 import { GamePoolList } from "@/components/room/GamePoolList";
 import { PackageControls } from "@/components/room/PackageControls";
+import { SharedLibrarySection } from "@/components/room/SharedLibrarySection";
 import { cn } from "@/lib/utils";
 
 export function GamePoolScreen({ roomCode }: { roomCode: string }) {
   const { participantId } = useParticipant(roomCode);
   const [games, setGames] = useState<PoolGame[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
 
   useEffect(() => {
     return subscribeToGamePool(roomCode, setGames);
+  }, [roomCode]);
+
+  useEffect(() => {
+    return subscribeToParticipants(roomCode, setParticipants);
   }, [roomCode]);
 
   const activeGames = games.filter((g) => g.status === "active");
@@ -41,6 +47,10 @@ export function GamePoolScreen({ roomCode }: { roomCode: string }) {
       </div>
 
       <AddGameForm roomCode={roomCode} participantId={participantId} />
+
+      {participantId && (
+        <SharedLibrarySection roomCode={roomCode} participantId={participantId} participants={participants} />
+      )}
 
       <PackageControls roomCode={roomCode} participantId={participantId} games={games} />
 
