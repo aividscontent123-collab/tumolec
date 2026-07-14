@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import type { SwipeGame } from "@/lib/types";
 import { matchesMultiplayerFilter, type MultiplayerFilter, type SteamOwnedGame } from "@/lib/steamLibrary";
+import { createRoom, joinRoom, hydrateAndAddGamesToPool } from "@/lib/rooms";
 
 type DetailsResponse = {
   steamAppId: number;
@@ -30,10 +32,15 @@ export function SoloSwipeScreen({
   multiplayerFilter: MultiplayerFilter;
   onExit: () => void;
 }) {
+  const router = useRouter();
   const cursorRef = useRef(0);
   const [currentCard, setCurrentCard] = useState<SwipeGame | null>(null);
   const [exhausted, setExhausted] = useState(false);
   const [loadingCard, setLoadingCard] = useState(true);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [upgradeNickname, setUpgradeNickname] = useState("");
+  const [upgrading, setUpgrading] = useState(false);
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
 
   async function advance() {
     setLoadingCard(true);
@@ -73,6 +80,27 @@ export function SoloSwipeScreen({
     advance();
   }
 
+  async function handleUpgradeToCoop(e: React.FormEvent) {
+    e.preventDefault();
+    const nickname = upgradeNickname.trim();
+    if (!nickname) return;
+    setUpgrading(true);
+    setUpgradeError(null);
+    try {
+      const appIds = pool.map((g) => g.steamAppId);
+      const code = await createRoom("Wieczór gier");
+      const id = crypto.randomUUID();
+      await joinRoom(code, id, nickname, appIds);
+      localStorage.setItem(`tumolec:${code}:participantId`, id);
+      localStorage.setItem(`tumolec:${code}:nickname`, nickname);
+      await hydrateAndAddGamesToPool(code, appIds, id);
+      router.push(`/room/${code}`);
+    } catch {
+      setUpgradeError("Nie udało się utworzyć pokoju. Spróbuj ponownie.");
+      setUpgrading(false);
+    }
+  }
+
   return (
     <main className="bg-app-gradient flex h-dvh flex-col gap-4 px-[22px] pt-[18px] pb-[10px]">
       <div className="flex items-center gap-3">
@@ -85,7 +113,34 @@ export function SoloSwipeScreen({
           ‹
         </button>
         <h1 className="font-heading text-[18px] font-bold text-foreground">Twoja biblioteka</h1>
+        <button
+          type="button"
+          onClick={() => setShowUpgrade((v) => !v)}
+          className="bg-secondary ml-auto rounded-full px-4 py-2 text-xs font-bold text-foreground"
+        >
+          Co-op / Dodaj znajomego
+        </button>
       </div>
+
+      {showUpgrade && (
+        <form onSubmit={handleUpgradeToCoop} className="bg-card border-border flex gap-2 rounded-xl border p-3">
+          <input
+            value={upgradeNickname}
+            onChange={(e) => setUpgradeNickname(e.target.value)}
+            placeholder="Twój pseudonim"
+            maxLength={24}
+            className="border-border flex-1 rounded-lg border bg-transparent px-3 py-2 text-sm text-foreground"
+          />
+          <button
+            type="submit"
+            disabled={upgrading}
+            className="bg-accent-brand rounded-lg px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+          >
+            {upgrading ? "Tworzę…" : "Stwórz"}
+          </button>
+        </form>
+      )}
+      {upgradeError && <p className="text-pass text-sm">{upgradeError}</p>}
 
       <div className="min-h-0 flex-1">
         {loadingCard ? (
