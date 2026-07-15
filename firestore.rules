@@ -70,6 +70,20 @@ service cloud.firestore {
         allow read: if true;
         allow write: if true; // stan mini-gier (moneta/koło), niski risk, grupa 2-4 znajomych
       }
+
+      match /liked/{steamAppId} {
+        allow read: if true;
+        // Kształt analogiczny do games -- likedBy to unia uczestników przez
+        // arrayUnion, stąd allow update (nie tylko create) na tym samym polu.
+        allow create: if request.resource.data.steamAppId is number
+          && request.resource.data.likedBy is list
+          && request.resource.data.likedBy.size() <= 20;
+        allow update: if request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly(['likedBy', 'addedAt'])
+          && request.resource.data.likedBy is list
+          && request.resource.data.likedBy.size() <= 20;
+        allow delete: if false;
+      }
     }
 
     match /steam_cache/{steamAppId} {

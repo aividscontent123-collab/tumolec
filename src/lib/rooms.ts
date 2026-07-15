@@ -494,3 +494,59 @@ export async function hydrateAndAddGamesToPool(
   await addGamesToPoolBatch(roomCode, validIds, addedBy);
   return validIds.length;
 }
+
+// ── Polubione (Explore) ──────────────────────────────────────────────────
+
+export type LikedGame = SwipeGame & { likedBy: string[] };
+
+function toLikedGame(likedDoc: QueryDocumentSnapshot<DocumentData>, cache: DocumentData | undefined): LikedGame {
+  const d = likedDoc.data();
+  return {
+    steamAppId: d.steamAppId,
+    likedBy: d.likedBy ?? [],
+    title: cache?.name ?? "…",
+    coverImageUrl: cache?.headerImageUrl,
+    tags: cache?.tags ?? [],
+    genres: cache?.genres ?? [],
+    reviewScorePercent: cache?.reviewScorePercent ?? 0,
+    reviewSummary: cache?.reviewSummary ?? "",
+    shortDescription: cache?.shortDescription ?? "",
+    developers: cache?.developers ?? [],
+    releaseDate: cache?.releaseDate ?? null,
+    screenshots: cache?.screenshots ?? [],
+    trailerHlsUrl: cache?.trailerHlsUrl ?? null,
+    trailerThumbnail: cache?.trailerThumbnail ?? null,
+    totalReviews: cache?.totalReviews ?? 0,
+    topReviews: cache?.topReviews ?? [],
+  };
+}
+
+/** Zakłada, że steam_cache/{steamAppId} już istnieje (wywołaj
+ * /api/steam/details przed pierwszym polubieniem danego appid). */
+export async function likeGame(roomCode: string, steamAppId: number, participantId: string) {
+  await setDoc(
+    doc(db, "rooms", roomCode, "liked", String(steamAppId)),
+    { steamAppId, likedBy: arrayUnion(participantId), addedAt: serverTimestamp() },
+    { merge: true },
+  );
+}
+
+/** Nie kasuje dokumentu gdy `likedBy` staje się puste -- świadome uproszczenie,
+ * pusty wpis jest odfiltrowywany po stronie klienta w subscribeToLiked. */
+export async function unlikeGame(roomCode: string, steamAppId: number, participantId: string) {
+  await updateDoc(doc(db, "rooms", roomCode, "liked", String(steamAppId)), {
+    likedBy: arrayRemove(participantId),
+  });
+}
+
+export function subscribeToLiked(roomCode: string, onChange: (games: LikedGame[]) => void) {
+  return onSnapshot(collection(db, "rooms", roomCode, "liked"), async (snap) => {
+    const games = await Promise.all(
+      snap.docs.map(async (likedDoc) => {
+        const cacheSnap = await getDoc(doc(db, "steam_cache", String(likedDoc.data().steamAppId)));
+        return toLikedGame(likedDoc, cacheSnap.exists() ? cacheSnap.data() : undefined);
+      }),
+    );
+    onChange(games.filter((g) => g.likedBy.length > 0));
+  });
+}
