@@ -51,10 +51,14 @@ export function SoloLikedScreen({
     const ids = getLocalLiked();
     const loaded = await Promise.all(
       ids.map(async (steamAppId) => {
-        const res = await fetch(`/api/steam/details?appid=${steamAppId}`);
-        const data = (await res.json()) as DetailsResponse;
-        if (!res.ok || data.error) return null;
-        return toSwipeGame({ ...data, steamAppId });
+        try {
+          const res = await fetch(`/api/steam/details?appid=${steamAppId}`);
+          const data = (await res.json()) as DetailsResponse;
+          if (!res.ok || data.error) return null;
+          return toSwipeGame({ ...data, steamAppId });
+        } catch {
+          return null;
+        }
       }),
     );
     setGames(loaded.filter((g): g is SwipeGame => g !== null));
