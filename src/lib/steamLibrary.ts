@@ -55,3 +55,24 @@ export function computeSharedLibrary(participants: { steamLibraryAppIds?: number
   const [first, ...rest] = libraries;
   return first.filter((appId) => rest.every((lib) => lib.includes(appId)));
 }
+
+/** Puste `selected` = brak filtra (wszystko przechodzi). W przeciwnym razie
+ * gra musi mieć co najmniej jeden z wybranych gatunków. */
+export function matchesGenreFilter(genres: string[], selected: string[]): boolean {
+  if (selected.length === 0) return true;
+  return genres.some((g) => selected.includes(g));
+}
+
+/** Czyste gatunki Steam (l=polish) zweryfikowane doświadczalnie podczas
+ * brainstormingu -- jedno źródło prawdy dla chipsów filtra, używane przez
+ * ustawienia solo i Explore w pokoju. */
+export const GENRE_OPTIONS: { value: string; label: string }[] = [
+  { value: "Akcja", label: "Akcja" },
+  { value: "Przygodowe", label: "Przygodowe" },
+  { value: "RPG", label: "RPG" },
+  { value: "Strategie", label: "Strategie" },
+  { value: "Symulacje", label: "Symulacje" },
+  { value: "Niezależne", label: "Niezależne" },
+  { value: "Rekreacyjne", label: "Rekreacyjne (Casual)" },
+  { value: "Sportowe", label: "Sportowe" },
+];

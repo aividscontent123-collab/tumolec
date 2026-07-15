@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   computeSharedLibrary,
   filterByPlaytime,
+  matchesGenreFilter,
   matchesMultiplayerFilter,
   shuffleGames,
   type SteamOwnedGame,
@@ -90,5 +91,20 @@ describe("computeSharedLibrary", () => {
       { steamLibraryAppIds: [1, 2] },
     ]);
     expect(result.sort()).toEqual([1, 2]);
+  });
+});
+
+describe("matchesGenreFilter", () => {
+  it("dopasowuje wszystko, gdy nic nie wybrano", () => {
+    expect(matchesGenreFilter(["RPG"], [])).toBe(true);
+    expect(matchesGenreFilter([], [])).toBe(true);
+  });
+
+  it("dopasowuje gdy gra ma choć jeden z wybranych gatunkow", () => {
+    expect(matchesGenreFilter(["Akcja", "RPG"], ["RPG", "Strategie"])).toBe(true);
+  });
+
+  it("odrzuca gdy gra nie ma zadnego z wybranych gatunkow", () => {
+    expect(matchesGenreFilter(["Sportowe"], ["RPG", "Strategie"])).toBe(false);
   });
 });
