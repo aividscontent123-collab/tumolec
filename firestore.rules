@@ -86,6 +86,8 @@ service cloud.firestore {
           'name', 'headerImageUrl', 'steamUrl', 'shortDescription',
           'reviewSummary', 'reviewScorePercent', 'tags',
           'minRequirements', 'recRequirements', 'cachedAt',
+          'developers', 'releaseDate', 'screenshots',
+          'trailerHlsUrl', 'trailerThumbnail', 'totalReviews',
         ])
         && request.resource.data.name is string
         && request.resource.data.headerImageUrl is string
@@ -96,7 +98,13 @@ service cloud.firestore {
         && request.resource.data.tags is list
         && request.resource.data.minRequirements is string
         && request.resource.data.recRequirements is string
-        && request.resource.data.cachedAt is number;
+        && request.resource.data.cachedAt is number
+        && request.resource.data.developers is list
+        && (request.resource.data.releaseDate == null || request.resource.data.releaseDate is map)
+        && request.resource.data.screenshots is list
+        && (request.resource.data.trailerHlsUrl == null || request.resource.data.trailerHlsUrl is string)
+        && (request.resource.data.trailerThumbnail == null || request.resource.data.trailerThumbnail is string)
+        && request.resource.data.totalReviews is number;
     }
 
     match /packages/{packageId} {
