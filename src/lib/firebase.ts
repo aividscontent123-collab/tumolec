@@ -16,12 +16,15 @@ const firebaseConfig = {
 const existingApp = getApps()[0];
 const app = existingApp ?? initializeApp(firebaseConfig);
 
-// experimentalAutoDetectLongPolling: streaming WebChannel bywa buforowany przez
-// sieci desktopowe/proxy/ad-blockery -- wtedy pierwszy snapshot dochodzi, ale
-// kolejne pushe live już nie (przyczyna: znajomy dołącza, desktop go nie widzi).
-// Auto-detect przełącza na long-polling tylko gdy streaming zawiedzie -- backward
-// compatible. initializeFirestore rzuca przy drugim wywołaniu na tym samym app
+// experimentalForceLongPolling: streaming WebChannel bywa buforowany w
+// nieskończoność przez sieci desktopowe/proxy/antywirusy -- auto-detect (domyślne
+// od SDK v9.22.0, więc nasze wcześniejsze `experimentalAutoDetectLongPolling: true`
+// nic nie zmieniało ponad default) nadal czeka na ten strumień zanim się podda,
+// co obserwowaliśmy jako operacje (np. tworzenie pokoju) wiszące kilka minut.
+// Wymuszenie long-pollingu pomija tę negocjację całkowicie -- każdy request
+// zamyka się od razu po dostarczeniu danych, kosztem nieco większego narzutu
+// per-request. initializeFirestore rzuca przy drugim wywołaniu na tym samym app
 // (HMR w devie), więc inicjalizujemy tylko dla świeżo tworzonego app.
 export const db = existingApp
   ? getFirestore(app)
-  : initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+  : initializeFirestore(app, { experimentalForceLongPolling: true });
