@@ -7,7 +7,7 @@ describe("parseSteamAppDetails", () => {
       name: "Hades",
       header_image: "https://example.com/header.jpg",
       short_description: "A rogue-like dungeon crawler.",
-      genres: [{ description: "Action" }],
+      genres: [{ description: "Akcja" }, { description: "RPG" }],
       categories: [{ description: "Single-player" }],
       pc_requirements: { minimum: "min", recommended: "rec" },
       developers: ["Supergiant Games"],
@@ -38,7 +38,8 @@ describe("parseSteamAppDetails", () => {
     expect(result.trailerThumbnail).toBe("https://example.com/movie-thumb.jpg");
     expect(result.totalReviews).toBe(100);
     expect(result.reviewScorePercent).toBe(90);
-    expect(result.tags).toEqual(["Action", "Single-player"]);
+    expect(result.genres).toEqual(["Akcja", "RPG"]);
+    expect(result.tags).toEqual(["Akcja", "RPG", "Single-player"]);
   });
 
   it("picks top reviews by votes_up, truncates long text, caps at 3", () => {
@@ -76,6 +77,21 @@ describe("parseSteamAppDetails", () => {
     const result = parseSteamAppDetails(620, data, reviews);
 
     expect(result.tags).toEqual(["Action", "Warsztat Steam"]);
+  });
+
+  it("deduplicates genres independently of tags, gdy Steam powtarza opis gatunku", () => {
+    const data = {
+      name: "Test Game",
+      header_image: "",
+      short_description: "",
+      genres: [{ description: "RPG" }, { description: "RPG" }],
+      pc_requirements: {},
+    };
+    const reviews = { query_summary: { review_score_desc: "", total_positive: 0, total_reviews: 0 } };
+
+    const result = parseSteamAppDetails(1, data, reviews);
+
+    expect(result.genres).toEqual(["RPG"]);
   });
 
   it("handles missing release_date, movies, screenshots, developers gracefully", () => {

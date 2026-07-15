@@ -16,6 +16,7 @@ export type SteamCacheEntry = {
   reviewSummary: string;
   reviewScorePercent: number;
   tags: string[];
+  genres: string[];
   minRequirements: string;
   recRequirements: string;
   cachedAt: number;
@@ -81,12 +82,9 @@ export function parseSteamAppDetails(
   reviews: AppReviewsResponse,
 ): SteamCacheEntry {
   const summary = reviews.query_summary;
-  const tags = [
-    ...new Set([
-      ...(data.genres ?? []).map((g) => g.description),
-      ...(data.categories ?? []).map((c) => c.description),
-    ]),
-  ];
+  const genres = [...new Set((data.genres ?? []).map((g) => g.description))];
+  const tags = [...new Set([...genres, ...(data.categories ?? []).map((c) => c.description)])];
+
   const requirements = Array.isArray(data.pc_requirements) ? {} : (data.pc_requirements ?? {});
   const movie = data.movies?.[0];
   const topReviews = [...(reviews.reviews ?? [])]
@@ -112,6 +110,7 @@ export function parseSteamAppDetails(
         ? Math.round((summary.total_positive / summary.total_reviews) * 100)
         : 0,
     tags,
+    genres,
     minRequirements: requirements.minimum ?? "",
     recRequirements: requirements.recommended ?? "",
     cachedAt: Date.now(),
