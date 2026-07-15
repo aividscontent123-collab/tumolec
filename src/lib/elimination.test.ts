@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveRound, type Swipe } from "./elimination";
+import { breakTieDeterministically, resolveRound, type Swipe } from "./elimination";
 
 function rightSwipes(steamAppId: number, participantIds: string[]): Swipe[] {
   return participantIds.map((participantId) => ({
@@ -101,5 +101,15 @@ describe("resolveRound", () => {
     if (result.status === "advance") {
       expect(result.survivors).toEqual([1]);
     }
+  });
+});
+
+describe("breakTieDeterministically", () => {
+  it("wybiera najnizsze appid do liczby dostepnych miejsc", () => {
+    expect(breakTieDeterministically([30, 10, 20], 2)).toEqual([10, 20]);
+  });
+
+  it("zwraca pustą listę gdy brak dostępnych miejsc", () => {
+    expect(breakTieDeterministically([10, 20], 0)).toEqual([]);
   });
 });

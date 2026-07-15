@@ -20,7 +20,7 @@ import {
   type Participant,
   type RoundDoc,
 } from "@/lib/rooms";
-import { resolveRound, type Swipe } from "@/lib/elimination";
+import { breakTieDeterministically, resolveRound, type Swipe } from "@/lib/elimination";
 
 /** Talia swipe + orkiestracja rund eliminacji. Mechanika (odcinanie najsłabszej
  * połowy, remisy) liczona w lib/elimination.ts -- ten komponent tylko łączy ją
@@ -152,10 +152,7 @@ function RoundVoting({
     } else if (result.status === "advance") {
       finalSurvivors = result.survivors;
     } else if (result.status === "tie-break") {
-      // TODO(Faza 3+): coinflip jako tie-breaker nie jest tu podpięty (patrz
-      // komentarz przy finishRound w lib/rooms.ts). Na razie deterministyczne
-      // rozstrzygnięcie (najniższy appid) -- bezpieczne przy wyścigu.
-      const brokenTie = [...result.tiedForCutoff].sort((a, b) => a - b).slice(0, result.slotsAvailable);
+      const brokenTie = breakTieDeterministically(result.tiedForCutoff, result.slotsAvailable);
       finalSurvivors = [...result.survivors, ...brokenTie];
     }
     if (!finalSurvivors) return;

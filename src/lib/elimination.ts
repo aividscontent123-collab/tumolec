@@ -59,3 +59,13 @@ export function resolveRound(pool: number[], swipes: Swipe[]): RoundResult {
     slotsAvailable: slotsNeededFromTie,
   };
 }
+
+/** Rozstrzyga remis na granicy odcięcia deterministycznie (najniższe appid) --
+ * bezpieczne przy wyścigu wielu klientów w pokoju (każdy liczy to samo z tych
+ * samych danych). Używane też przez lokalny Versus solo (jeden uczestnik, ale
+ * ten sam kod ścieżki co pokój dla spójności).
+ * TODO(kiedyś): prawdziwy rzut monetą/koło zamiast sortowania -- nienaprawiony
+ * dług, zob. docs/superpowers/specs/2026-07-15-explore-liked-versus-design.md. */
+export function breakTieDeterministically(tiedForCutoff: number[], slotsAvailable: number): number[] {
+  return [...tiedForCutoff].sort((a, b) => a - b).slice(0, slotsAvailable);
+}
