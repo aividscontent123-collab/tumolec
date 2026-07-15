@@ -9,10 +9,14 @@ type MobilePanel = "media" | "info" | null;
 
 /** Otacza kartę swipe (przekazaną jako children -- ten komponent nie zna
  * `onSwipe`/`key`, tylko układa panele wokół) panelami mediów i premiery/opinii.
- * Desktop (lg+): 3 kolumny widoczne naraz. Telefon: karta zawsze widoczna,
- * 2 chipsy nad nią rozwijają odpowiedni panel jako akordeon -- swipe nigdy nie
- * traci miejsca na ekranie. Panel bez danych (MediaPanel zwraca null) chowa
- * też swój chip na telefonie. */
+ * Desktop (lg+): 3 równe kolumny o WSPÓLNEJ stałej wysokości (`DESKTOP_HEIGHT`,
+ * wzorem Dustpile -- panele nie rozciągają się do pełnego viewportu, tylko
+ * tworzą zwarty rząd, każdy przewijalny niezależnie gdy treść nie mieści się).
+ * Telefon: karta zawsze widoczna, 2 chipsy nad nią rozwijają odpowiedni panel
+ * jako akordeon -- swipe nigdy nie traci miejsca na ekranie. Panel bez danych
+ * (MediaPanel zwraca null) chowa też swój chip na telefonie. */
+const DESKTOP_HEIGHT = "lg:h-[560px]";
+
 export function GameDetailLayout({ game, children }: { game: SwipeGame; children: React.ReactNode }) {
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>(null);
 
@@ -21,7 +25,7 @@ export function GameDetailLayout({ game, children }: { game: SwipeGame; children
   const hasMedia = game.trailerHlsUrl !== null || game.screenshots.length > 0;
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-1 gap-4 lg:grid-cols-[340px_1fr_340px]">
+    <div className={`grid h-full min-h-0 grid-cols-1 gap-4 lg:grid-cols-3 ${DESKTOP_HEIGHT}`}>
       {hasMedia && <div className="hidden lg:block lg:overflow-y-auto">{media}</div>}
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 lg:contents">
@@ -47,7 +51,7 @@ export function GameDetailLayout({ game, children }: { game: SwipeGame; children
         {mobilePanel === "media" && hasMedia && <div className="lg:hidden">{media}</div>}
         {mobilePanel === "info" && <div className="lg:hidden">{info}</div>}
 
-        <div className="min-h-0 flex-1">{children}</div>
+        <div className="min-h-0 flex-1 lg:h-full">{children}</div>
       </div>
 
       <div className="hidden lg:block lg:overflow-y-auto">{info}</div>

@@ -195,7 +195,7 @@ function RoundVoting({
       <p className="text-text-secondary pt-6 pb-2 text-center text-xs tracking-widest">
         RUNDA {roundNumber} · GRA {round.poolAtStart.length - myDeck.length + 1} Z {round.poolAtStart.length}
       </p>
-      <main className="min-h-0 flex-1 px-[22px] pb-[18px]">
+      <main className="min-h-0 flex-1 px-[22px] pb-[18px] lg:flex lg:flex-col lg:justify-center">
         <GameDetailLayout key={currentGame.steamAppId} game={currentGame}>
           <SwipeCard key={currentGame.steamAppId} game={currentGame} onSwipe={handleSwipe} />
         </GameDetailLayout>

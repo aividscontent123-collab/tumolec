@@ -113,6 +113,7 @@ function toPoolGame(gameDoc: QueryDocumentSnapshot<DocumentData>, cache: Documen
     trailerHlsUrl: cache?.trailerHlsUrl ?? null,
     trailerThumbnail: cache?.trailerThumbnail ?? null,
     totalReviews: cache?.totalReviews ?? 0,
+    topReviews: cache?.topReviews ?? [],
   };
 }
 

@@ -25,6 +25,7 @@ export type SteamCacheEntry = {
   trailerHlsUrl: string | null;
   trailerThumbnail: string | null;
   totalReviews: number;
+  topReviews: { author: string; text: string; votedUp: boolean }[];
 };
 
 export async function searchSteamGames(term: string): Promise<SteamSearchResult[]> {
@@ -60,7 +61,16 @@ type AppReviewsResponse = {
     total_positive: number;
     total_reviews: number;
   };
+  reviews?: {
+    review: string;
+    voted_up: boolean;
+    votes_up: number;
+    author: { personaname: string };
+  }[];
 };
+
+const TOP_REVIEW_COUNT = 3;
+const TOP_REVIEW_TEXT_MAX_LENGTH = 280;
 
 /** Czysta funkcja parsowania -- wydzielona z fetchSteamGameDetails żeby dało
  * się ją testować bez sieci. steamAppId niewykorzystywany dziś w wyniku, ale
@@ -79,6 +89,17 @@ export function parseSteamAppDetails(
   ];
   const requirements = Array.isArray(data.pc_requirements) ? {} : (data.pc_requirements ?? {});
   const movie = data.movies?.[0];
+  const topReviews = [...(reviews.reviews ?? [])]
+    .sort((a, b) => b.votes_up - a.votes_up)
+    .slice(0, TOP_REVIEW_COUNT)
+    .map((r) => ({
+      author: r.author.personaname,
+      text:
+        r.review.length > TOP_REVIEW_TEXT_MAX_LENGTH
+          ? r.review.slice(0, TOP_REVIEW_TEXT_MAX_LENGTH).trimEnd() + "…"
+          : r.review,
+      votedUp: r.voted_up,
+    }));
 
   return {
     name: data.name,
@@ -100,12 +121,13 @@ export function parseSteamAppDetails(
     trailerHlsUrl: movie?.hls_h264 ?? null,
     trailerThumbnail: movie?.thumbnail ?? null,
     totalReviews: summary?.total_reviews ?? 0,
+    topReviews,
   };
 }
 
 export async function fetchSteamGameDetails(steamAppId: number): Promise<SteamCacheEntry> {
   const detailsUrl = `https://store.steampowered.com/api/appdetails?appids=${steamAppId}&l=polish`;
-  const reviewsUrl = `https://store.steampowered.com/appreviews/${steamAppId}?json=1&language=polish&purchase_type=all`;
+  const reviewsUrl = `https://store.steampowered.com/appreviews/${steamAppId}?json=1&language=polish&purchase_type=all&num_per_page=10`;
 
   const [detailsRes, reviewsRes] = await Promise.all([fetch(detailsUrl), fetch(reviewsUrl)]);
   if (!detailsRes.ok) throw new Error(`appdetails failed: ${detailsRes.status}`);

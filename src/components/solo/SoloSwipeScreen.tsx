@@ -24,6 +24,7 @@ type DetailsResponse = {
   trailerHlsUrl: string | null;
   trailerThumbnail: string | null;
   totalReviews: number;
+  topReviews: { author: string; text: string; votedUp: boolean }[];
   error?: string;
 };
 
@@ -75,6 +76,7 @@ export function SoloSwipeScreen({
           trailerHlsUrl: data.trailerHlsUrl,
           trailerThumbnail: data.trailerThumbnail,
           totalReviews: data.totalReviews,
+          topReviews: data.topReviews,
         });
         setLoadingCard(false);
         return;
@@ -158,7 +160,7 @@ export function SoloSwipeScreen({
       )}
       {upgradeError && <p className="text-pass text-sm">{upgradeError}</p>}
 
-      <div className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1 lg:flex lg:flex-col lg:justify-center">
         {loadingCard ? (
           <p className="text-text-secondary p-6 text-center text-sm">Szukam kolejnej gry…</p>
         ) : exhausted ? (

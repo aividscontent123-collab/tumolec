@@ -17,6 +17,7 @@ const demoGame: SwipeGame = {
   trailerHlsUrl: null,
   trailerThumbnail: null,
   totalReviews: 12000,
+  topReviews: [],
 };
 
 const participants = [

@@ -94,7 +94,7 @@ export function SwipeCard({
         Pas
       </motion.div>
 
-      <div className="relative mx-auto mt-5 aspect-[3/4] w-3/5 shrink-0 overflow-hidden rounded-xl">
+      <div className="relative mx-auto mt-5 aspect-[3/4] w-3/5 shrink-0 overflow-hidden rounded-xl lg:w-2/5 lg:max-h-[38%]">
         {game.coverImageUrl && imgSrc ? (
           <Image
             src={imgSrc}
