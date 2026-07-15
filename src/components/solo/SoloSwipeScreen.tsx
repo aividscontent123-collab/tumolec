@@ -6,7 +6,8 @@ import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import type { SwipeGame } from "@/lib/types";
-import { matchesMultiplayerFilter, type MultiplayerFilter, type SteamOwnedGame } from "@/lib/steamLibrary";
+import { matchesGenreFilter, matchesMultiplayerFilter, type MultiplayerFilter, type SteamOwnedGame } from "@/lib/steamLibrary";
+import { addLiked, getLocalLiked, saveLocalLiked } from "@/lib/localLiked";
 import { createRoom, joinRoom, hydrateAndAddGamesToPool } from "@/lib/rooms";
 import { MiniGameLauncher } from "@/components/minigames/MiniGameLauncher";
 
@@ -37,11 +38,15 @@ type DetailsResponse = {
 export function SoloSwipeScreen({
   pool,
   multiplayerFilter,
+  genreFilter,
   onExit,
+  onViewLiked,
 }: {
   pool: SteamOwnedGame[];
   multiplayerFilter: MultiplayerFilter;
+  genreFilter: string[];
   onExit: () => void;
+  onViewLiked: () => void;
 }) {
   const router = useRouter();
   const cursorRef = useRef(0);
@@ -63,6 +68,7 @@ export function SoloSwipeScreen({
         const data = (await res.json()) as DetailsResponse;
         if (!res.ok || data.error) continue;
         if (!matchesMultiplayerFilter(data.tags, multiplayerFilter)) continue;
+        if (!matchesGenreFilter(data.genres, genreFilter)) continue;
         setCurrentCard({
           steamAppId: data.steamAppId,
           title: data.name,
@@ -96,7 +102,12 @@ export function SoloSwipeScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function handleSwipe() {
+  function handleLike() {
+    if (currentCard) saveLocalLiked(addLiked(getLocalLiked(), currentCard.steamAppId));
+    advance();
+  }
+
+  function handlePass() {
     advance();
   }
 
@@ -135,8 +146,15 @@ export function SoloSwipeScreen({
         <h1 className="font-heading text-[18px] font-bold text-foreground">Twoja biblioteka</h1>
         <button
           type="button"
-          onClick={() => setShowUpgrade((v) => !v)}
+          onClick={onViewLiked}
           className="bg-secondary ml-auto rounded-full px-4 py-2 text-xs font-bold text-foreground"
+        >
+          ❤️ {getLocalLiked().length}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowUpgrade((v) => !v)}
+          className="bg-secondary rounded-full px-4 py-2 text-xs font-bold text-foreground"
         >
           Co-op / Dodaj znajomego
         </button>
@@ -171,12 +189,16 @@ export function SoloSwipeScreen({
           </p>
         ) : currentCard ? (
           <GameDetailLayout key={currentCard.steamAppId} game={currentCard}>
-            <SwipeCard key={currentCard.steamAppId} game={currentCard} onSwipe={handleSwipe} />
+            <SwipeCard
+              key={currentCard.steamAppId}
+              game={currentCard}
+              onSwipe={(direction) => (direction === "right" ? handleLike() : handlePass())}
+            />
           </GameDetailLayout>
         ) : null}
       </div>
 
-      {!exhausted && !loadingCard && <SwipeActionButtons onPass={handleSwipe} onLike={handleSwipe} />}
+      {!exhausted && !loadingCard && <SwipeActionButtons onPass={handlePass} onLike={handleLike} />}
       <MiniGameLauncher mode={{ kind: "solo" }} />
     </main>
   );
