@@ -6,6 +6,7 @@ export type SwipeGame = {
   /** Steam CDN header image URL. Undefined -> render placeholder cover. */
   coverImageUrl?: string;
   tags: string[];
+  genres: string[];
   reviewScorePercent: number;
   reviewSummary: string;
   shortDescription: string;

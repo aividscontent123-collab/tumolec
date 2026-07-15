@@ -87,7 +87,7 @@ service cloud.firestore {
           'reviewSummary', 'reviewScorePercent', 'tags',
           'minRequirements', 'recRequirements', 'cachedAt',
           'developers', 'releaseDate', 'screenshots',
-          'trailerHlsUrl', 'trailerThumbnail', 'totalReviews', 'topReviews',
+          'trailerHlsUrl', 'trailerThumbnail', 'totalReviews', 'topReviews', 'genres',
         ])
         && request.resource.data.name is string
         && request.resource.data.headerImageUrl is string
@@ -105,7 +105,8 @@ service cloud.firestore {
         && (request.resource.data.trailerHlsUrl == null || request.resource.data.trailerHlsUrl is string)
         && (request.resource.data.trailerThumbnail == null || request.resource.data.trailerThumbnail is string)
         && request.resource.data.totalReviews is number
-        && request.resource.data.topReviews is list;
+        && request.resource.data.topReviews is list
+        && request.resource.data.genres is list;
     }
 
     match /packages/{packageId} {

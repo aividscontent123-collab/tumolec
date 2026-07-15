@@ -8,6 +8,7 @@ const demoGame: SwipeGame = {
   steamAppId: 728880,
   title: "Overcooked! 2",
   tags: ["Co-op", "Chaotyczne", "1-4 graczy"],
+  genres: ["Rekreacyjne"],
   reviewScorePercent: 96,
   reviewSummary: "Bardzo pozytywne",
   shortDescription: "Rakietowa, chaotyczna kooperacyjna gra kucharska dla 1-4 graczy.",

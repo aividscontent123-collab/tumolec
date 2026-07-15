@@ -104,6 +104,7 @@ function toPoolGame(gameDoc: QueryDocumentSnapshot<DocumentData>, cache: Documen
     title: cache?.name ?? "…",
     coverImageUrl: cache?.headerImageUrl,
     tags: cache?.tags ?? [],
+    genres: cache?.genres ?? [],
     reviewScorePercent: cache?.reviewScorePercent ?? 0,
     reviewSummary: cache?.reviewSummary ?? "",
     shortDescription: cache?.shortDescription ?? "",

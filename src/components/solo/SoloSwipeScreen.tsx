@@ -15,6 +15,7 @@ type DetailsResponse = {
   name: string;
   headerImageUrl: string;
   tags: string[];
+  genres: string[];
   reviewScorePercent: number;
   reviewSummary: string;
   shortDescription: string;
@@ -67,6 +68,7 @@ export function SoloSwipeScreen({
           title: data.name,
           coverImageUrl: data.headerImageUrl,
           tags: data.tags,
+          genres: data.genres,
           reviewScorePercent: data.reviewScorePercent,
           reviewSummary: data.reviewSummary,
           shortDescription: data.shortDescription,
