@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { SoloLikedScreen } from "@/components/solo/SoloLikedScreen";
 import { SoloSettingsScreen } from "@/components/solo/SoloSettingsScreen";
 import { SoloSwipeScreen } from "@/components/solo/SoloSwipeScreen";
+import type { SwipeGame } from "@/lib/types";
 import {
   filterByPlaytime,
   shuffleGames,
@@ -13,7 +15,8 @@ import {
 
 type Screen =
   | { name: "settings" }
-  | { name: "swipe"; pool: SteamOwnedGame[]; multiplayer: MultiplayerFilter; genres: string[] };
+  | { name: "swipe"; pool: SteamOwnedGame[]; multiplayer: MultiplayerFilter; genres: string[] }
+  | { name: "liked" };
 
 export function SoloHome() {
   const [screen, setScreen] = useState<Screen>({ name: "settings" });
@@ -57,7 +60,19 @@ export function SoloHome() {
         multiplayerFilter={screen.multiplayer}
         genreFilter={screen.genres}
         onExit={() => setScreen({ name: "settings" })}
-        onViewLiked={() => {}}
+        onViewLiked={() => setScreen({ name: "liked" })}
+      />
+    );
+  }
+
+  if (screen.name === "liked") {
+    return (
+      <SoloLikedScreen
+        onBack={() => setScreen({ name: "settings" })}
+        onStartVersus={(games) => {
+          // Task 11 rozszerzy Screen o wariant "versus" i doda tu jego ustawienie.
+          console.log("start versus", games);
+        }}
       />
     );
   }
