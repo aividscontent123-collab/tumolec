@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SwipeCard } from "@/components/swipe/SwipeCard";
+import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import { WinnerScreen } from "@/components/room/WinnerScreen";
 import { useParticipant } from "@/lib/useParticipant";
@@ -195,9 +196,9 @@ function RoundVoting({
         RUNDA {roundNumber} · GRA {round.poolAtStart.length - myDeck.length + 1} Z {round.poolAtStart.length}
       </p>
       <main className="min-h-0 flex-1 px-[22px] pb-[18px]">
-        <div className="relative h-full">
+        <GameDetailLayout key={currentGame.steamAppId} game={currentGame}>
           <SwipeCard key={currentGame.steamAppId} game={currentGame} onSwipe={handleSwipe} />
-        </div>
+        </GameDetailLayout>
       </main>
       <SwipeActionButtons onPass={() => handleSwipe("left")} onLike={() => handleSwipe("right")} />
     </div>
