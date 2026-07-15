@@ -6,7 +6,15 @@ import { addGameToPool } from "@/lib/rooms";
 
 type SteamSuggestion = { steamAppId: number; name: string; tinyImage: string };
 
-export function AddGameForm({ roomCode, participantId }: { roomCode: string; participantId: string }) {
+export function AddGameForm({
+  roomCode,
+  participantId,
+  addFn = addGameToPool,
+}: {
+  roomCode: string;
+  participantId: string;
+  addFn?: (roomCode: string, steamAppId: number, participantId: string) => Promise<void>;
+}) {
   const [term, setTerm] = useState("");
   const [suggestions, setSuggestions] = useState<SteamSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,7 +47,7 @@ export function AddGameForm({ roomCode, participantId }: { roomCode: string; par
     try {
       const res = await fetch(`/api/steam/details?appid=${suggestion.steamAppId}`);
       if (!res.ok) throw new Error();
-      await addGameToPool(roomCode, suggestion.steamAppId, participantId);
+      await addFn(roomCode, suggestion.steamAppId, participantId);
       setTerm("");
       setSuggestions([]);
     } catch {
