@@ -72,8 +72,10 @@ export function parseSteamAppDetails(
 ): SteamCacheEntry {
   const summary = reviews.query_summary;
   const tags = [
-    ...(data.genres ?? []).map((g) => g.description),
-    ...(data.categories ?? []).map((c) => c.description),
+    ...new Set([
+      ...(data.genres ?? []).map((g) => g.description),
+      ...(data.categories ?? []).map((c) => c.description),
+    ]),
   ];
   const requirements = Array.isArray(data.pc_requirements) ? {} : (data.pc_requirements ?? {});
   const movie = data.movies?.[0];

@@ -41,6 +41,22 @@ describe("parseSteamAppDetails", () => {
     expect(result.tags).toEqual(["Action", "Single-player"]);
   });
 
+  it("deduplicates tags when Steam repeats a genre/category description", () => {
+    const data = {
+      name: "Portal 2",
+      header_image: "https://example.com/header.jpg",
+      short_description: "",
+      genres: [{ description: "Action" }],
+      categories: [{ description: "Warsztat Steam" }, { description: "Warsztat Steam" }],
+      pc_requirements: {},
+    };
+    const reviews = { query_summary: { review_score_desc: "", total_positive: 0, total_reviews: 0 } };
+
+    const result = parseSteamAppDetails(620, data, reviews);
+
+    expect(result.tags).toEqual(["Action", "Warsztat Steam"]);
+  });
+
   it("handles missing release_date, movies, screenshots, developers gracefully", () => {
     const data = {
       name: "Old Game",
