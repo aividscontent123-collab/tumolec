@@ -36,20 +36,19 @@ type DetailsResponse = {
  * zostają w przeglądarce"). Karty dociągane leniwie: appdetails wołane
  * dopiero dla kolejnego kandydata z `pool`, pomijane jeśli nie pasuje do
  * filtra solo/multi -- nigdy nie pytamy o więcej niż faktycznie pokazujemy. */
-export function SoloSwipeScreen({
-  pool,
-  multiplayerFilter,
-  onExit,
-  onViewLiked,
-}: {
-  pool: SteamOwnedGame[];
-  multiplayerFilter: MultiplayerFilter;
-  onExit: () => void;
-  onViewLiked: () => void;
-}) {
+type SoloSwipeProps =
+  | { source: "library"; pool: SteamOwnedGame[]; multiplayerFilter: MultiplayerFilter; onExit: () => void; onViewLiked: () => void }
+  | { source: "catalog"; excludeAppIds: number[]; multiplayerFilter: MultiplayerFilter; onExit: () => void; onViewLiked: () => void };
+
+export function SoloSwipeScreen(props: SoloSwipeProps) {
+  const { multiplayerFilter, onExit, onViewLiked } = props;
   const router = useRouter();
   const [genreFilter, setGenreFilter] = useState<string[]>([]);
   const cursorRef = useRef(0);
+  const poolRef = useRef<number[]>(props.source === "library" ? props.pool.map((g) => g.steamAppId) : []);
+  const discoverStartRef = useRef(0);
+  const discoverExhaustedRef = useRef(props.source === "library");
+  const excludeSetRef = useRef(new Set<number>(props.source === "catalog" ? props.excludeAppIds : []));
   const [currentCard, setCurrentCard] = useState<SwipeGame | null>(null);
   const [exhausted, setExhausted] = useState(false);
   const [loadingCard, setLoadingCard] = useState(true);
@@ -58,13 +57,33 @@ export function SoloSwipeScreen({
   const [upgrading, setUpgrading] = useState(false);
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
 
+  async function fetchNextDiscoverPage() {
+    const genresParam = genreFilter.join(",");
+    const res = await fetch(`/api/steam/discover?genres=${encodeURIComponent(genresParam)}&start=${discoverStartRef.current}`);
+    if (!res.ok) return null;
+    return (await res.json()) as { appIds: number[]; hasMore: boolean };
+  }
+
   async function advance() {
     setLoadingCard(true);
-    while (cursorRef.current < pool.length) {
-      const candidate = pool[cursorRef.current];
+    while (true) {
+      if (cursorRef.current >= poolRef.current.length) {
+        if (discoverExhaustedRef.current) break;
+        const page = await fetchNextDiscoverPage();
+        if (!page) {
+          discoverExhaustedRef.current = true;
+          break;
+        }
+        discoverStartRef.current += page.appIds.length;
+        if (!page.hasMore) discoverExhaustedRef.current = true;
+        const fresh = page.appIds.filter((id) => !excludeSetRef.current.has(id));
+        poolRef.current.push(...fresh);
+        continue;
+      }
+      const candidate = poolRef.current[cursorRef.current];
       cursorRef.current += 1;
       try {
-        const res = await fetch(`/api/steam/details?appid=${candidate.steamAppId}`);
+        const res = await fetch(`/api/steam/details?appid=${candidate}`);
         const data = (await res.json()) as DetailsResponse;
         if (!res.ok || data.error) continue;
         // Wpisy steam_cache sprzed dodania danego pola (genres, topReviews...)
@@ -123,7 +142,8 @@ export function SoloSwipeScreen({
     setUpgrading(true);
     setUpgradeError(null);
     try {
-      const appIds = pool.map((g) => g.steamAppId);
+      if (props.source !== "library") return;
+      const appIds = props.pool.map((g) => g.steamAppId);
       const code = await createRoom("Wieczór gier");
       const id = crypto.randomUUID();
       await joinRoom(code, id, nickname, appIds);
@@ -148,7 +168,9 @@ export function SoloSwipeScreen({
         >
           ‹
         </button>
-        <h1 className="font-heading text-[18px] font-bold text-foreground">Twoja biblioteka</h1>
+        <h1 className="font-heading text-[18px] font-bold text-foreground">
+          {props.source === "library" ? "Twoja biblioteka" : "Cały katalog Steam"}
+        </h1>
         <button
           type="button"
           onClick={onViewLiked}
@@ -156,16 +178,18 @@ export function SoloSwipeScreen({
         >
           ❤️ {getLocalLiked().length}
         </button>
-        <button
-          type="button"
-          onClick={() => setShowUpgrade((v) => !v)}
-          className="bg-secondary rounded-full px-4 py-2 text-xs font-bold text-foreground"
-        >
-          Co-op / Dodaj znajomego
-        </button>
+        {props.source === "library" && (
+          <button
+            type="button"
+            onClick={() => setShowUpgrade((v) => !v)}
+            className="bg-secondary rounded-full px-4 py-2 text-xs font-bold text-foreground"
+          >
+            Co-op / Dodaj znajomego
+          </button>
+        )}
       </div>
 
-      {showUpgrade && (
+      {props.source === "library" && showUpgrade && (
         <form onSubmit={handleUpgradeToCoop} className="bg-card border-border flex gap-2 rounded-xl border p-3">
           <input
             value={upgradeNickname}

@@ -16,7 +16,8 @@ import {
 
 type Screen =
   | { name: "settings" }
-  | { name: "swipe"; pool: SteamOwnedGame[]; multiplayer: MultiplayerFilter }
+  | { name: "swipe"; source: "library"; pool: SteamOwnedGame[]; multiplayer: MultiplayerFilter }
+  | { name: "swipe"; source: "catalog"; excludeAppIds: number[]; multiplayer: MultiplayerFilter }
   | { name: "liked" }
   | { name: "versus"; games: SwipeGame[] };
 
@@ -25,10 +26,22 @@ export function SoloHome() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleLoadLibrary(profile: string, backlog: BacklogFilter, multiplayer: MultiplayerFilter) {
+  async function handleLoadLibrary(
+    source: "library" | "catalog",
+    profile: string,
+    backlog: BacklogFilter,
+    multiplayer: MultiplayerFilter,
+  ) {
     setLoading(true);
     setError(null);
     try {
+      if (!profile) {
+        // Katalog bez profilu -- nic do wykluczenia, prosto do Explore.
+        setScreen({ name: "swipe", source: "catalog", excludeAppIds: [], multiplayer });
+        setLoading(false);
+        return;
+      }
+
       const res = await fetch(`/api/steam/library?profile=${encodeURIComponent(profile)}`);
       const data = (await res.json()) as { games?: SteamOwnedGame[]; error?: string };
       if (!res.ok || !data.games) {
@@ -36,13 +49,20 @@ export function SoloHome() {
         setLoading(false);
         return;
       }
+
+      if (source === "catalog") {
+        setScreen({ name: "swipe", source: "catalog", excludeAppIds: data.games.map((g) => g.steamAppId), multiplayer });
+        setLoading(false);
+        return;
+      }
+
       const filtered = filterByPlaytime(data.games, backlog);
       if (filtered.length === 0) {
         setError("Brak gier pasujących do tego filtra.");
         setLoading(false);
         return;
       }
-      setScreen({ name: "swipe", pool: shuffleGames(filtered), multiplayer });
+      setScreen({ name: "swipe", source: "library", pool: shuffleGames(filtered), multiplayer });
       setLoading(false);
     } catch {
       setError("Coś poszło nie tak. Spróbuj ponownie.");
@@ -50,10 +70,23 @@ export function SoloHome() {
     }
   }
 
-  if (screen.name === "swipe") {
+  if (screen.name === "swipe" && screen.source === "library") {
     return (
       <SoloSwipeScreen
+        source="library"
         pool={screen.pool}
+        multiplayerFilter={screen.multiplayer}
+        onExit={() => setScreen({ name: "settings" })}
+        onViewLiked={() => setScreen({ name: "liked" })}
+      />
+    );
+  }
+
+  if (screen.name === "swipe" && screen.source === "catalog") {
+    return (
+      <SoloSwipeScreen
+        source="catalog"
+        excludeAppIds={screen.excludeAppIds}
         multiplayerFilter={screen.multiplayer}
         onExit={() => setScreen({ name: "settings" })}
         onViewLiked={() => setScreen({ name: "liked" })}
