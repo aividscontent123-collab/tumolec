@@ -82,6 +82,20 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
   // subskrybuje na żywo i może pisać, zob. Task 2 (rooms.ts).
   useEffect(() => subscribeToExploreGenreFilter(roomCode, setGenres), [roomCode]);
 
+  // Steamowy `start` jest liczony względem konkretnego zapytania z tagami --
+  // po zmianie filtra gatunku w trakcie przeglądania katalogu trzeba
+  // zresetować paginację, inaczej kolejna strona to "50. najlepszy RPG"
+  // zamiast najlepszych dopasowań. Nie dotyka currentCard -- karta na ekranie
+  // zostaje, zmienia się tylko to, co dociągnie następny advance().
+  useEffect(() => {
+    if (!started || source !== "catalog") return;
+    discoverStartRef.current = 0;
+    discoverExhaustedRef.current = false;
+    poolRef.current = [];
+    cursorRef.current = 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [genres]);
+
   function handleGenreChange(next: string[]) {
     setGenres(next);
     setExploreGenreFilter(roomCode, next);
@@ -100,7 +114,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
     setLoadingCard(true);
     while (true) {
       if (cursorRef.current >= poolRef.current.length) {
-        if (source !== "catalog" || discoverExhaustedRef.current) break;
+        if (discoverExhaustedRef.current) break;
         let page: { appIds: number[]; hasMore: boolean } | null;
         try {
           page = await fetchNextDiscoverPage();

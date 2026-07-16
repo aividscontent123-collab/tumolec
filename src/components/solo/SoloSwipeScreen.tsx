@@ -135,6 +135,20 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Steamowy `start` jest liczony względem konkretnego zapytania z tagami --
+  // po zmianie filtra gatunku w trakcie przeglądania katalogu trzeba
+  // zresetować paginację, inaczej kolejna strona to "50. najlepszy RPG"
+  // zamiast najlepszych dopasowań. Nie dotyka currentCard -- karta na ekranie
+  // zostaje, zmienia się tylko to, co dociągnie następny advance().
+  useEffect(() => {
+    if (props.source !== "catalog") return;
+    discoverStartRef.current = 0;
+    discoverExhaustedRef.current = false;
+    poolRef.current = [];
+    cursorRef.current = 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [genreFilter]);
+
   function handleLike() {
     if (currentCard) saveLocalLiked(addLiked(getLocalLiked(), currentCard.steamAppId));
     advance();
