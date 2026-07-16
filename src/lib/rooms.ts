@@ -352,6 +352,22 @@ export function subscribeToWheel(roomCode: string, onChange: (wheel: WheelState 
   });
 }
 
+// ── Filtr gatunków Explore (pokój) ──────────────────────────────────────
+// TEN SAM dokument `rooms/{roomCode}/session/state` co coinflip/wheel/plinko
+// -- `setDoc(..., { merge: true })` na samym polu `exploreGenreFilter`, żeby
+// nigdy nie nadpisać pozostałych pól. Każdy gracz widzi i może zmieniać
+// filtr drugiego (allow write: if true na tym dokumencie, niski risk).
+
+export async function setExploreGenreFilter(roomCode: string, genres: string[]) {
+  await setDoc(doc(db, "rooms", roomCode, "session", "state"), { exploreGenreFilter: genres }, { merge: true });
+}
+
+export function subscribeToExploreGenreFilter(roomCode: string, onChange: (genres: string[]) => void) {
+  return onSnapshot(doc(db, "rooms", roomCode, "session", "state"), (snap) => {
+    onChange(snap.exists() ? ((snap.data().exploreGenreFilter as string[] | undefined) ?? []) : []);
+  });
+}
+
 // ── Paczki gier ───────────────────────────────────────────────────────────
 // Globalna, wspólna kolekcja top-level `packages/{packageId}` (bez scope'owania
 // per pokój -- jedna ekipa znajomych). Niezmienne po zapisaniu (v1): brak update/delete.
