@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
+import { GenreFilterBar } from "@/components/swipe/GenreFilterBar";
 import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import type { SwipeGame } from "@/lib/types";
@@ -38,17 +39,16 @@ type DetailsResponse = {
 export function SoloSwipeScreen({
   pool,
   multiplayerFilter,
-  genreFilter,
   onExit,
   onViewLiked,
 }: {
   pool: SteamOwnedGame[];
   multiplayerFilter: MultiplayerFilter;
-  genreFilter: string[];
   onExit: () => void;
   onViewLiked: () => void;
 }) {
   const router = useRouter();
+  const [genreFilter, setGenreFilter] = useState<string[]>([]);
   const cursorRef = useRef(0);
   const [currentCard, setCurrentCard] = useState<SwipeGame | null>(null);
   const [exhausted, setExhausted] = useState(false);
@@ -184,6 +184,8 @@ export function SoloSwipeScreen({
         </form>
       )}
       {upgradeError && <p className="text-pass text-sm">{upgradeError}</p>}
+
+      <GenreFilterBar value={genreFilter} onChange={setGenreFilter} />
 
       <div className="min-h-0 flex-1 lg:flex lg:flex-col lg:justify-center">
         {loadingCard ? (

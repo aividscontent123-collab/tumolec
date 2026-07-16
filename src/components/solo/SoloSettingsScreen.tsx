@@ -4,9 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ToggleChip } from "@/components/ui/ToggleChip";
-import { MultiToggleChip } from "@/components/ui/MultiToggleChip";
 import { roomExists, createRoom, joinRoom } from "@/lib/rooms";
-import { GENRE_OPTIONS, type BacklogFilter, type MultiplayerFilter } from "@/lib/steamLibrary";
+import { type BacklogFilter, type MultiplayerFilter } from "@/lib/steamLibrary";
 
 const BACKLOG_OPTIONS: { value: BacklogFilter; label: string }[] = [
   { value: "never", label: "Nigdy nie grane (0 min)" },
@@ -26,7 +25,7 @@ export function SoloSettingsScreen({
   loading,
   error,
 }: {
-  onLoadLibrary: (profile: string, backlog: BacklogFilter, multiplayer: MultiplayerFilter, genres: string[]) => void;
+  onLoadLibrary: (profile: string, backlog: BacklogFilter, multiplayer: MultiplayerFilter) => void;
   loading: boolean;
   error: string | null;
 }) {
@@ -34,7 +33,6 @@ export function SoloSettingsScreen({
   const [profile, setProfile] = useState("");
   const [backlog, setBacklog] = useState<BacklogFilter>("never");
   const [multiplayer, setMultiplayer] = useState<MultiplayerFilter>("all");
-  const [genres, setGenres] = useState<string[]>([]);
   const [joinCode, setJoinCode] = useState("");
   const [showJoin, setShowJoin] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -115,17 +113,12 @@ export function SoloSettingsScreen({
           <ToggleChip value={multiplayer} options={MULTIPLAYER_OPTIONS} onChange={setMultiplayer} columns={3} />
         </div>
 
-        <div className="mt-5">
-          <p className="mb-2 text-sm font-semibold text-foreground">Jaki gatunek?</p>
-          <MultiToggleChip value={genres} options={GENRE_OPTIONS} onChange={setGenres} columns={2} />
-        </div>
-
         {error && <p className="text-pass mt-4 text-sm">{error}</p>}
 
         <button
           type="button"
           disabled={loading || !profile.trim()}
-          onClick={() => onLoadLibrary(profile.trim(), backlog, multiplayer, genres)}
+          onClick={() => onLoadLibrary(profile.trim(), backlog, multiplayer)}
           className="bg-accent-brand mt-6 w-full rounded-full py-3 text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)] disabled:opacity-50"
         >
           {loading ? "Wczytuję…" : "Wczytaj bibliotekę"}

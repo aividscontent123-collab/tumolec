@@ -16,7 +16,7 @@ import {
 
 type Screen =
   | { name: "settings" }
-  | { name: "swipe"; pool: SteamOwnedGame[]; multiplayer: MultiplayerFilter; genres: string[] }
+  | { name: "swipe"; pool: SteamOwnedGame[]; multiplayer: MultiplayerFilter }
   | { name: "liked" }
   | { name: "versus"; games: SwipeGame[] };
 
@@ -25,12 +25,7 @@ export function SoloHome() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleLoadLibrary(
-    profile: string,
-    backlog: BacklogFilter,
-    multiplayer: MultiplayerFilter,
-    genres: string[],
-  ) {
+  async function handleLoadLibrary(profile: string, backlog: BacklogFilter, multiplayer: MultiplayerFilter) {
     setLoading(true);
     setError(null);
     try {
@@ -47,7 +42,7 @@ export function SoloHome() {
         setLoading(false);
         return;
       }
-      setScreen({ name: "swipe", pool: shuffleGames(filtered), multiplayer, genres });
+      setScreen({ name: "swipe", pool: shuffleGames(filtered), multiplayer });
       setLoading(false);
     } catch {
       setError("Coś poszło nie tak. Spróbuj ponownie.");
@@ -60,7 +55,6 @@ export function SoloHome() {
       <SoloSwipeScreen
         pool={screen.pool}
         multiplayerFilter={screen.multiplayer}
-        genreFilter={screen.genres}
         onExit={() => setScreen({ name: "settings" })}
         onViewLiked={() => setScreen({ name: "liked" })}
       />
