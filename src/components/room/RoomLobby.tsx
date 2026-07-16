@@ -187,10 +187,16 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
           {copied ? "Skopiowano link!" : "Udostępnij pokój"}
         </button>
         <Link
-          href={`/room/${roomCode}/pool`}
+          href={`/room/${roomCode}/explore`}
           className="bg-accent-brand rounded-full py-3 text-center text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)]"
         >
-          Pula gier →
+          Eksploruj gry →
+        </Link>
+        <Link
+          href={`/room/${roomCode}/pool`}
+          className="bg-secondary rounded-full py-3 text-center text-sm font-bold text-foreground"
+        >
+          Ręczna pula gier →
         </Link>
         <Link
           href={`/room/${roomCode}/history`}
