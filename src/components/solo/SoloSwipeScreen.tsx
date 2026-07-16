@@ -69,8 +69,17 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
     while (true) {
       if (cursorRef.current >= poolRef.current.length) {
         if (discoverExhaustedRef.current) break;
-        const page = await fetchNextDiscoverPage();
+        let page: { appIds: number[]; hasMore: boolean } | null;
+        try {
+          page = await fetchNextDiscoverPage();
+        } catch {
+          page = null;
+        }
         if (!page) {
+          discoverExhaustedRef.current = true;
+          break;
+        }
+        if (page.appIds.length === 0) {
           discoverExhaustedRef.current = true;
           break;
         }
