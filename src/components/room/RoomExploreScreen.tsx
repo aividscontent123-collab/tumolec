@@ -32,18 +32,18 @@ function toSwipeGame(data: DetailsResponse): SwipeGame {
     steamAppId: data.steamAppId,
     title: data.name,
     coverImageUrl: data.headerImageUrl,
-    tags: data.tags,
-    genres: data.genres,
+    tags: data.tags ?? [],
+    genres: data.genres ?? [],
     reviewScorePercent: data.reviewScorePercent,
     reviewSummary: data.reviewSummary,
     shortDescription: data.shortDescription,
-    developers: data.developers,
+    developers: data.developers ?? [],
     releaseDate: data.releaseDate,
-    screenshots: data.screenshots,
+    screenshots: data.screenshots ?? [],
     trailerHlsUrl: data.trailerHlsUrl,
     trailerThumbnail: data.trailerThumbnail,
-    totalReviews: data.totalReviews,
-    topReviews: data.topReviews,
+    totalReviews: data.totalReviews ?? 0,
+    topReviews: data.topReviews ?? [],
   };
 }
 
@@ -76,8 +76,11 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
         const res = await fetch(`/api/steam/details?appid=${steamAppId}`);
         const data = (await res.json()) as DetailsResponse;
         if (!res.ok || data.error) continue;
-        if (!matchesMultiplayerFilter(data.tags, multiplayer)) continue;
-        if (!matchesGenreFilter(data.genres, genres)) continue;
+        // Wpisy steam_cache sprzed dodania danego pola (genres, topReviews...)
+        // nie mają go wcale -- filtry muszą dostać znormalizowane tablice,
+        // nie surowe (potencjalnie undefined) pole z odpowiedzi API.
+        if (!matchesMultiplayerFilter(data.tags ?? [], multiplayer)) continue;
+        if (!matchesGenreFilter(data.genres ?? [], genres)) continue;
         setCurrentCard(toSwipeGame({ ...data, steamAppId }));
         setLoadingCard(false);
         return;

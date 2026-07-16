@@ -67,24 +67,29 @@ export function SoloSwipeScreen({
         const res = await fetch(`/api/steam/details?appid=${candidate.steamAppId}`);
         const data = (await res.json()) as DetailsResponse;
         if (!res.ok || data.error) continue;
-        if (!matchesMultiplayerFilter(data.tags, multiplayerFilter)) continue;
-        if (!matchesGenreFilter(data.genres, genreFilter)) continue;
+        // Wpisy steam_cache sprzed dodania danego pola (genres, topReviews...)
+        // nie mają go wcale -- normalizacja od razu, przed filtrami i przed
+        // budową karty, żeby żadne z dwóch miejsc nie wywaliło się na undefined.
+        const tags = data.tags ?? [];
+        const genres = data.genres ?? [];
+        if (!matchesMultiplayerFilter(tags, multiplayerFilter)) continue;
+        if (!matchesGenreFilter(genres, genreFilter)) continue;
         setCurrentCard({
           steamAppId: data.steamAppId,
           title: data.name,
           coverImageUrl: data.headerImageUrl,
-          tags: data.tags,
-          genres: data.genres,
+          tags,
+          genres,
           reviewScorePercent: data.reviewScorePercent,
           reviewSummary: data.reviewSummary,
           shortDescription: data.shortDescription,
-          developers: data.developers,
+          developers: data.developers ?? [],
           releaseDate: data.releaseDate,
-          screenshots: data.screenshots,
+          screenshots: data.screenshots ?? [],
           trailerHlsUrl: data.trailerHlsUrl,
           trailerThumbnail: data.trailerThumbnail,
-          totalReviews: data.totalReviews,
-          topReviews: data.topReviews,
+          totalReviews: data.totalReviews ?? 0,
+          topReviews: data.topReviews ?? [],
         });
         setLoadingCard(false);
         return;
