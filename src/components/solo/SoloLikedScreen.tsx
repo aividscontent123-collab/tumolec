@@ -95,7 +95,11 @@ export function SoloLikedScreen({
       const data = (await res.json()) as DetailsResponse;
       if (!res.ok || data.error) return;
       saveLocalLiked(addLiked(getLocalLiked(), suggestion.steamAppId));
-      setGames((gs) => [...gs, toSwipeGame({ ...data, steamAppId: suggestion.steamAppId })]);
+      setGames((gs) =>
+        gs.some((g) => g.steamAppId === suggestion.steamAppId)
+          ? gs
+          : [...gs, toSwipeGame({ ...data, steamAppId: suggestion.steamAppId })],
+      );
       setTerm("");
       setSuggestions([]);
     } finally {
