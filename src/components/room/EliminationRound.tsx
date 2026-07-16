@@ -61,6 +61,11 @@ export function EliminationRound({
     });
   }, [roomCode, initialPool, session]);
 
+  // Naprawa wyścigu: gdy dwóch klientów wystartuje RÓWNOLEGLE różne sesje (żaden
+  // nie widział drugiego w chwili bootstrapu -- getActiveRound wyżej to tylko
+  // jednorazowy odczyt), obaj nasłuchują tu na żywo i zbiegają do sesji o
+  // najniższym sessionId. Ograniczone do rundy 1: po awansie do rundy 2+ dana
+  // sesja jest już "realną" grą i nie przełączamy jej pod kimś w trakcie.
   useEffect(() => {
     if (!session || session.roundNumber !== 1) return;
     return subscribeToEliminationRounds(roomCode, (rounds) => {
@@ -132,6 +137,8 @@ function RoundVoting({
     };
   }, [roomCode, roundId, onAdvance]);
 
+  // Gdy wszyscy skończą głosować w tej rundzie, którykolwiek klient ją zamyka.
+  // Bezpieczne przy wyścigu: resolveRound jest czystą funkcją tych samych danych.
   useEffect(() => {
     if (!round || round.status !== "voting" || participants.length === 0) return;
     if (swipes.length < round.poolAtStart.length * participants.length) return;
