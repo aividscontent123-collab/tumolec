@@ -141,3 +141,45 @@ export async function fetchSteamGameDetails(steamAppId: number): Promise<SteamCa
 
   return parseSteamAppDetails(steamAppId, entry.data, reviews);
 }
+
+/** Steam nie publikuje oficjalnej listy ID tagów -- wyznaczone i zweryfikowane
+ * przez `GET https://store.steampowered.com/tagdata/populartags/polish`
+ * (oficjalny endpoint Steama, ten sam co zasila filtr tagów na sklepie).
+ * Nazwy tagów Steama różnią się nieco od `GENRE_OPTIONS` (np. tag to
+ * "Strategiczne", genre to "Strategie") -- to ten sam gatunek, ID potwierdzone
+ * ręcznie (tags=9 zwraca RimWorld/Factorio/Crusader Kings III itd.). */
+export const GENRE_TAG_IDS: Record<string, number> = {
+  Akcja: 19,
+  Przygodowe: 21,
+  RPG: 122,
+  Strategie: 9,
+  Symulacje: 599,
+  Niezależne: 492,
+  Rekreacyjne: 597,
+  Sportowe: 701,
+};
+
+/** Czysta funkcja parsowania -- jedyny endpoint Steama w projekcie zwracający
+ * HTML (`results_html`) zamiast JSON. Wyciąga appid z każdego wyniku wyszukiwania
+ * przez `data-ds-appid="N"`. Zweryfikowane na żywo: zwykły regex wystarcza,
+ * kształt HTML jest stabilny -- brak potrzeby nowej zależności (cheerio). */
+export function parseDiscoverAppIds(resultsHtml: string): number[] {
+  return [...resultsHtml.matchAll(/data-ds-appid="(\d+)"/g)].map((m) => Number(m[1]));
+}
+
+export type DiscoverPage = { appIds: number[]; hasMore: boolean };
+
+/** `tagIds` puste = przeglądanie całego katalogu bez filtra (domyślne
+ * sortowanie Steama = najpopularniejsze/bestsellery, nic dodatkowego nie
+ * trzeba przekazywać). `count=25` na stronę, `start` to kursor paginacji
+ * Steama (nie mylić z lokalnym cursorRef ekranów swipe). */
+export async function fetchDiscoverPage(tagIds: number[], start: number): Promise<DiscoverPage> {
+  const count = 25;
+  const tagsParam = tagIds.length > 0 ? `&tags=${tagIds.join(",")}` : "";
+  const url = `https://store.steampowered.com/search/results/?query&start=${start}&count=${count}&infinite=1&l=polish${tagsParam}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`search/results failed: ${res.status}`);
+  const data = (await res.json()) as { results_html: string; total_count: number };
+  const appIds = parseDiscoverAppIds(data.results_html);
+  return { appIds, hasMore: start + appIds.length < data.total_count };
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSteamAppDetails } from "./steam";
+import { parseSteamAppDetails, parseDiscoverAppIds } from "./steam";
 
 describe("parseSteamAppDetails", () => {
   it("parses full data with movie, screenshots, release date and reviews", () => {
@@ -113,5 +113,25 @@ describe("parseSteamAppDetails", () => {
     expect(result.totalReviews).toBe(0);
     expect(result.reviewScorePercent).toBe(0);
     expect(result.reviewSummary).toBe("Brak ocen");
+  });
+});
+
+describe("parseDiscoverAppIds", () => {
+  it("extracts every data-ds-appid from a results_html fragment", () => {
+    const html = `
+      <a href="https://store.steampowered.com/app/730/CounterStrike_2/" data-ds-appid="730" data-ds-tagids="[1663,19]" class="search_result_row">
+        <span class="title">Counter-Strike 2</span>
+      </a>
+      <a href="https://store.steampowered.com/app/1623730/Palworld/" data-ds-appid="1623730" data-ds-tagids="[1695]" class="search_result_row">
+        <span class="title">Palworld</span>
+      </a>
+    `;
+
+    expect(parseDiscoverAppIds(html)).toEqual([730, 1623730]);
+  });
+
+  it("returns an empty array for a fragment with no results", () => {
+    expect(parseDiscoverAppIds("")).toEqual([]);
+    expect(parseDiscoverAppIds("<div>Brak wyników</div>")).toEqual([]);
   });
 });
