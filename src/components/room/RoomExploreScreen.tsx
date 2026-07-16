@@ -30,6 +30,11 @@ const MULTIPLAYER_OPTIONS: { value: MultiplayerFilter; label: string }[] = [
   { value: "multi", label: "Wieloosobowe" },
 ];
 
+const SOURCE_OPTIONS: { value: "shared" | "catalog"; label: string }[] = [
+  { value: "shared", label: "Wspólna biblioteka" },
+  { value: "catalog", label: "Cały katalog Steam" },
+];
+
 type DetailsResponse = SteamCacheEntry & { steamAppId: number; error?: string };
 
 function toSwipeGame(data: DetailsResponse): SwipeGame {
@@ -61,12 +66,16 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [multiplayer, setMultiplayer] = useState<MultiplayerFilter>("multi");
   const [genres, setGenres] = useState<string[]>([]);
+  const [source, setSource] = useState<"shared" | "catalog">("shared");
   const [started, setStarted] = useState(false);
   const [currentCard, setCurrentCard] = useState<SwipeGame | null>(null);
   const [loadingCard, setLoadingCard] = useState(false);
   const [exhausted, setExhausted] = useState(false);
   const cursorRef = useRef(0);
   const poolRef = useRef<number[]>([]);
+  const discoverStartRef = useRef(0);
+  const discoverExhaustedRef = useRef(false);
+  const excludeSetRef = useRef<Set<number>>(new Set());
 
   useEffect(() => subscribeToParticipants(roomCode, setParticipants), [roomCode]);
   // Filtr gatunku żyje w rooms/{roomCode}/session/state -- każdy gracz
@@ -80,9 +89,38 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
 
   const shared = computeSharedLibrary(participants);
 
+  async function fetchNextDiscoverPage() {
+    const genresParam = genres.join(",");
+    const res = await fetch(`/api/steam/discover?genres=${encodeURIComponent(genresParam)}&start=${discoverStartRef.current}`);
+    if (!res.ok) return null;
+    return (await res.json()) as { appIds: number[]; hasMore: boolean };
+  }
+
   async function advance() {
     setLoadingCard(true);
-    while (cursorRef.current < poolRef.current.length) {
+    while (true) {
+      if (cursorRef.current >= poolRef.current.length) {
+        if (source !== "catalog" || discoverExhaustedRef.current) break;
+        let page: { appIds: number[]; hasMore: boolean } | null;
+        try {
+          page = await fetchNextDiscoverPage();
+        } catch {
+          page = null;
+        }
+        if (!page) {
+          discoverExhaustedRef.current = true;
+          break;
+        }
+        if (page.appIds.length === 0) {
+          discoverExhaustedRef.current = true;
+          break;
+        }
+        discoverStartRef.current += page.appIds.length;
+        if (!page.hasMore) discoverExhaustedRef.current = true;
+        const fresh = page.appIds.filter((id) => !excludeSetRef.current.has(id));
+        poolRef.current.push(...fresh);
+        continue;
+      }
       const steamAppId = poolRef.current[cursorRef.current];
       cursorRef.current += 1;
       try {
@@ -107,8 +145,16 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
   }
 
   function handleStart() {
-    poolRef.current = shared;
     cursorRef.current = 0;
+    discoverStartRef.current = 0;
+    discoverExhaustedRef.current = source !== "catalog";
+    if (source === "shared") {
+      poolRef.current = shared;
+    } else {
+      poolRef.current = [];
+      const me = participants.find((p) => p.participantId === participantId);
+      excludeSetRef.current = new Set(me?.steamLibraryAppIds ?? []);
+    }
     setExhausted(false);
     setStarted(true);
     advance();
@@ -145,13 +191,19 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
           <h1 className="font-heading text-[18px] font-bold text-foreground">Eksploruj</h1>
         </div>
 
-        {shared.length === 0 ? (
+        <div className="mt-4">
+          <ToggleChip value={source} options={SOURCE_OPTIONS} onChange={setSource} columns={2} />
+        </div>
+
+        {source === "shared" && shared.length === 0 ? (
           <p className="text-text-secondary mt-6 text-center text-sm">
             Za mało uczestników z podpiętym Steamem, żeby policzyć wspólną bibliotekę.
           </p>
         ) : (
           <>
-            <p className="text-text-secondary mt-4 text-sm">Wspólna biblioteka: {shared.length} gier</p>
+            {source === "shared" && (
+              <p className="text-text-secondary mt-4 text-sm">Wspólna biblioteka: {shared.length} gier</p>
+            )}
             <div className="mt-5">
               <p className="mb-2 text-sm font-semibold text-foreground">Jak chcecie grać?</p>
               <ToggleChip value={multiplayer} options={MULTIPLAYER_OPTIONS} onChange={setMultiplayer} columns={3} />
