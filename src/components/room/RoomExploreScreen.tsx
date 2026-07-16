@@ -5,16 +5,21 @@ import Link from "next/link";
 import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
-import { MultiToggleChip } from "@/components/ui/MultiToggleChip";
 import { ToggleChip } from "@/components/ui/ToggleChip";
+import { GenreFilterBar } from "@/components/swipe/GenreFilterBar";
 import {
   computeSharedLibrary,
   matchesGenreFilter,
   matchesMultiplayerFilter,
-  GENRE_OPTIONS,
   type MultiplayerFilter,
 } from "@/lib/steamLibrary";
-import { subscribeToParticipants, likeGame, type Participant } from "@/lib/rooms";
+import {
+  subscribeToParticipants,
+  likeGame,
+  setExploreGenreFilter,
+  subscribeToExploreGenreFilter,
+  type Participant,
+} from "@/lib/rooms";
 import { useParticipant } from "@/lib/useParticipant";
 import type { SteamCacheEntry } from "@/lib/steam";
 import type { SwipeGame } from "@/lib/types";
@@ -64,6 +69,14 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
   const poolRef = useRef<number[]>([]);
 
   useEffect(() => subscribeToParticipants(roomCode, setParticipants), [roomCode]);
+  // Filtr gatunku żyje w rooms/{roomCode}/session/state -- każdy gracz
+  // subskrybuje na żywo i może pisać, zob. Task 2 (rooms.ts).
+  useEffect(() => subscribeToExploreGenreFilter(roomCode, setGenres), [roomCode]);
+
+  function handleGenreChange(next: string[]) {
+    setGenres(next);
+    setExploreGenreFilter(roomCode, next);
+  }
 
   const shared = computeSharedLibrary(participants);
 
@@ -143,10 +156,6 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
               <p className="mb-2 text-sm font-semibold text-foreground">Jak chcecie grać?</p>
               <ToggleChip value={multiplayer} options={MULTIPLAYER_OPTIONS} onChange={setMultiplayer} columns={3} />
             </div>
-            <div className="mt-5">
-              <p className="mb-2 text-sm font-semibold text-foreground">Jaki gatunek?</p>
-              <MultiToggleChip value={genres} options={GENRE_OPTIONS} onChange={setGenres} columns={2} />
-            </div>
             <button
               type="button"
               onClick={handleStart}
@@ -181,6 +190,8 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
           ❤️ Polubione
         </Link>
       </div>
+
+      <GenreFilterBar value={genres} onChange={handleGenreChange} />
 
       <div className="min-h-0 flex-1 lg:flex lg:flex-col lg:justify-center">
         {loadingCard ? (
