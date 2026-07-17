@@ -112,9 +112,12 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
 
   async function fetchNextDiscoverPage() {
     const genresParam = genres.join(",");
-    const res = await fetch(`/api/steam/discover?genres=${encodeURIComponent(genresParam)}&start=${discoverStartRef.current}`);
+    const randomParam = discoverStartRef.current === 0 ? "&random=1" : "";
+    const res = await fetch(
+      `/api/steam/discover?genres=${encodeURIComponent(genresParam)}&start=${discoverStartRef.current}${randomParam}`,
+    );
     if (!res.ok) return null;
-    return (await res.json()) as { results: { appId: number; tagIds: number[] }[]; hasMore: boolean };
+    return (await res.json()) as { results: { appId: number; tagIds: number[] }[]; hasMore: boolean; start: number };
   }
 
   async function advance() {
@@ -122,7 +125,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
     while (true) {
       if (cursorRef.current >= poolRef.current.length) {
         if (discoverExhaustedRef.current) break;
-        let page: { results: { appId: number; tagIds: number[] }[]; hasMore: boolean } | null;
+        let page: { results: { appId: number; tagIds: number[] }[]; hasMore: boolean; start: number } | null;
         try {
           page = await fetchNextDiscoverPage();
         } catch {
@@ -136,7 +139,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
           discoverExhaustedRef.current = true;
           break;
         }
-        discoverStartRef.current += page.results.length;
+        discoverStartRef.current = page.start + page.results.length;
         if (!page.hasMore) discoverExhaustedRef.current = true;
         const fresh = page.results.filter((r) => !excludeSetRef.current.has(r.appId));
         poolRef.current.push(...fresh);
