@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import QRCode from "qrcode";
 import { subscribeToParticipants, subscribeToRoom, joinRoom, type Participant } from "@/lib/rooms";
 import { useParticipant } from "@/lib/useParticipant";
+import { useRoomShare } from "@/lib/useRoomShare";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { filterByPlaytime, type BacklogFilter } from "@/lib/steamLibrary";
 import { MiniGameLauncher } from "@/components/minigames/MiniGameLauncher";
@@ -19,36 +19,7 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
   const [joining, setJoining] = useState(false);
   const [joinProfile, setJoinProfile] = useState("");
   const [joinBacklog, setJoinBacklog] = useState<BacklogFilter>("never");
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    // Kod QR celowo koduje publiczny URL produkcyjny (nie window.location.origin) --
-    // skanuje go inny telefon, który nie dosięgnie localhosta ani preview-URL.
-    QRCode.toDataURL(`https://tumolec.vercel.app/room/${roomCode}`, { margin: 1, width: 200 })
-      .then(setQrDataUrl)
-      .catch(() => setQrDataUrl(null));
-  }, [roomCode]);
-
-  async function handleShare() {
-    const url = `https://tumolec.vercel.app/room/${roomCode}`;
-    if (navigator.share) {
-      // Odrzucenie (użytkownik anuluje arkusz share) jest nieszkodliwe -- ignorujemy.
-      try {
-        await navigator.share({ title: roomName ?? "Tumolec", url });
-      } catch {
-        /* anulowane przez użytkownika */
-      }
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard niedostępny/odrzucony -- nic więcej nie da się zrobić */
-    }
-  }
+  const { qrDataUrl, copied, handleShare } = useRoomShare(roomCode, roomName ?? undefined);
 
   useEffect(() => {
     const unsubRoom = subscribeToRoom(roomCode, (data) => setRoomName(data?.name ?? null));
