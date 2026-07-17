@@ -226,20 +226,67 @@ export function parseDiscoverResults(resultsHtml: string): DiscoverResult[] {
   return results;
 }
 
-export type DiscoverPage = { results: DiscoverResult[]; hasMore: boolean };
+const DISCOVER_PAGE_SIZE = 25;
+
+/** Losuje offset wyrównany do rozmiaru strony w granicach realnego
+ * total_count danego filtra -- nigdy nie "przestrzeli" w pustkę, w
+ * przeciwieństwie do ślepego losowania w stałym zakresie. */
+export function computeRandomDiscoverStart(totalCount: number, pageSize = DISCOVER_PAGE_SIZE): number {
+  const maxOffset = Math.max(0, totalCount - pageSize);
+  const maxPageIndex = Math.floor(maxOffset / pageSize);
+  return Math.floor(Math.random() * (maxPageIndex + 1)) * pageSize;
+}
+
+/** Fisher-Yates, wzorem shuffleGames w steamLibrary.ts. */
+export function shuffleDiscoverResults(results: DiscoverResult[]): DiscoverResult[] {
+  const arr = [...results];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+export type DiscoverPage = { results: DiscoverResult[]; hasMore: boolean; start: number };
 
 /** `tagIds` puste = przeglądanie całego katalogu bez filtra (domyślne
  * sortowanie Steama = najpopularniejsze/bestsellery, nic dodatkowego nie
  * trzeba przekazywać). `count=25` na stronę, `start` to kursor paginacji
  * Steama (nie mylić z lokalnym cursorRef ekranów swipe). Zwraca `results`
- * (appId + tagIds społecznościowe każdej gry) zamiast samych appidów. */
-export async function fetchDiscoverPage(tagIds: number[], start: number): Promise<DiscoverPage> {
-  const count = 25;
+ * (appId + tagIds społecznościowe każdej gry) zamiast samych appidów.
+ *
+ * `options.randomize`: gdy true, ignoruje przekazany `start`, robi
+ * dodatkowe lekkie zapytanie (`count=1`) żeby poznać total_count dla tego
+ * filtra, losuje offset wyrównany do strony w jego granicach (nigdy nie
+ * przestrzeli w pustkę), i tasuje kolejność zwróconej strony. Zwrócony
+ * `start` to FAKTYCZNIE użyty offset -- wołający ma kontynuować kolejne
+ * strony od niego, nie od wartości którą przekazał. */
+export async function fetchDiscoverPage(
+  tagIds: number[],
+  start: number,
+  options?: { randomize?: boolean },
+): Promise<DiscoverPage> {
   const tagsParam = tagIds.length > 0 ? `&tags=${tagIds.join(",")}` : "";
-  const url = `https://store.steampowered.com/search/results/?query&start=${start}&count=${count}&infinite=1&l=polish${tagsParam}`;
+  let effectiveStart = start;
+
+  if (options?.randomize) {
+    const probeUrl = `https://store.steampowered.com/search/results/?query&start=0&count=1&infinite=1&l=polish${tagsParam}`;
+    const probeRes = await fetch(probeUrl);
+    if (probeRes.ok) {
+      const probeData = (await probeRes.json()) as { total_count: number };
+      effectiveStart = computeRandomDiscoverStart(probeData.total_count);
+    }
+  }
+
+  const url = `https://store.steampowered.com/search/results/?query&start=${effectiveStart}&count=${DISCOVER_PAGE_SIZE}&infinite=1&l=polish${tagsParam}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`search/results failed: ${res.status}`);
   const data = (await res.json()) as { results_html: string; total_count: number };
   const results = parseDiscoverResults(data.results_html);
-  return { results, hasMore: start + results.length < data.total_count };
+  const finalResults = options?.randomize ? shuffleDiscoverResults(results) : results;
+  return {
+    results: finalResults,
+    hasMore: effectiveStart + finalResults.length < data.total_count,
+    start: effectiveStart,
+  };
 }

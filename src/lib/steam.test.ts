@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { parseSteamAppDetails, parseDiscoverAppIds, parseDiscoverResults, matchesTagOrCommunityFilter } from "./steam";
+import {
+  parseSteamAppDetails,
+  parseDiscoverAppIds,
+  parseDiscoverResults,
+  matchesTagOrCommunityFilter,
+  computeRandomDiscoverStart,
+  shuffleDiscoverResults,
+} from "./steam";
 
 describe("parseSteamAppDetails", () => {
   it("parses full data with movie, screenshots, release date and reviews", () => {
@@ -206,5 +213,35 @@ describe("matchesTagOrCommunityFilter", () => {
     expect(matchesTagOrCommunityFilter(["Akcja"], [1628], ["Metroidvania", "RPG"])).toBe(true); // via community id
     expect(matchesTagOrCommunityFilter(["RPG"], [999], ["Metroidvania", "RPG"])).toBe(true); // via game.tags
     expect(matchesTagOrCommunityFilter(["Akcja"], [999], ["Metroidvania", "RPG"])).toBe(false); // neither
+  });
+});
+
+describe("computeRandomDiscoverStart", () => {
+  it("returns 0 when totalCount fits in one page", () => {
+    expect(computeRandomDiscoverStart(0)).toBe(0);
+    expect(computeRandomDiscoverStart(25)).toBe(0);
+  });
+
+  it("returns an offset within [0, totalCount - pageSize] aligned to pageSize", () => {
+    for (let i = 0; i < 50; i++) {
+      const start = computeRandomDiscoverStart(1000);
+      expect(start).toBeGreaterThanOrEqual(0);
+      expect(start).toBeLessThanOrEqual(975); // 1000 - 25
+      expect(start % 25).toBe(0);
+    }
+  });
+});
+
+describe("shuffleDiscoverResults", () => {
+  it("returns the same elements in a new array without mutating the input", () => {
+    const results = [
+      { appId: 1, tagIds: [] },
+      { appId: 2, tagIds: [] },
+      { appId: 3, tagIds: [] },
+    ];
+    const shuffled = shuffleDiscoverResults(results);
+    expect(shuffled).not.toBe(results);
+    expect(shuffled.map((r) => r.appId).sort()).toEqual([1, 2, 3]);
+    expect(results.map((r) => r.appId)).toEqual([1, 2, 3]);
   });
 });
