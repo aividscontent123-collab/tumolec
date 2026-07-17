@@ -33,3 +33,27 @@ export function daysUntil(dateString: string, now: Date = new Date()): number | 
   const diffMs = releaseDate.getTime() - today.getTime();
   return Math.round(diffMs / (1000 * 60 * 60 * 24));
 }
+
+const RECENT_RELEASE_WINDOW_DAYS = 60;
+const UPCOMING_WINDOW_DAYS = 7;
+
+/** "Nowości" -- gra już wydana (nie comingSoon) w ciągu ostatnich 60 dni.
+ * Data nieparsowalna (np. "Q3 2026") liczy się jako niepasująca, nie błąd. */
+export function isRecentRelease(
+  releaseDate: { comingSoon: boolean; date: string } | null,
+  now: Date = new Date(),
+): boolean {
+  if (!releaseDate || releaseDate.comingSoon) return false;
+  const days = daysUntil(releaseDate.date, now);
+  return days !== null && days >= -RECENT_RELEASE_WINDOW_DAYS && days <= 0;
+}
+
+/** "Wkrótce" -- gra jeszcze niewydana (comingSoon), premiera w ciągu 7 dni. */
+export function isUpcomingSoon(
+  releaseDate: { comingSoon: boolean; date: string } | null,
+  now: Date = new Date(),
+): boolean {
+  if (!releaseDate || !releaseDate.comingSoon) return false;
+  const days = daysUntil(releaseDate.date, now);
+  return days !== null && days >= 0 && days <= UPCOMING_WINDOW_DAYS;
+}
