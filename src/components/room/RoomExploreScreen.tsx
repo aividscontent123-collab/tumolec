@@ -161,6 +161,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
             (wantsNew && isRecentRelease(data.releaseDate)) || (wantsSoon && isUpcomingSoon(data.releaseDate));
           if (!matchesDate) continue;
         }
+        excludeSetRef.current.add(candidate.appId);
         setCurrentCard(toSwipeGame({ ...data, steamAppId: candidate.appId }));
         setLoadingCard(false);
         return;

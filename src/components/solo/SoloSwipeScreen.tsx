@@ -117,6 +117,7 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
             (wantsNew && isRecentRelease(data.releaseDate)) || (wantsSoon && isUpcomingSoon(data.releaseDate));
           if (!matchesDate) continue;
         }
+        excludeSetRef.current.add(candidate.appId);
         setCurrentCard({
           steamAppId: data.steamAppId,
           title: data.name,
