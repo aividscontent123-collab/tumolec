@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
@@ -82,6 +83,8 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
   const discoverStartRef = useRef(0);
   const discoverExhaustedRef = useRef(false);
   const excludeSetRef = useRef<Set<number>>(new Set());
+  const searchParams = useSearchParams();
+  const autostartedRef = useRef(false);
 
   useEffect(() => subscribeToParticipants(roomCode, setParticipants), [roomCode]);
   // Filtr gatunku żyje w rooms/{roomCode}/session/state -- każdy gracz
@@ -102,6 +105,21 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
     cursorRef.current = 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genres]);
+
+  // Host przychodzący z RoomUpgradeButton (SoloSwipeScreen) -- pomija ekran
+  // wyboru źródła i startuje od razu z przekazanym source. Dla "shared"
+  // czekamy aż subscribeToParticipants dostarczy przynajmniej naszego
+  // własnego uczestnika, inaczej `shared` policzyłoby się z pustej listy.
+  useEffect(() => {
+    if (autostartedRef.current || started || !participantId) return;
+    const autostart = searchParams.get("autostart") === "1";
+    const initialSource = searchParams.get("source");
+    if (!autostart || (initialSource !== "shared" && initialSource !== "catalog")) return;
+    if (initialSource === "shared" && participants.length === 0) return;
+    autostartedRef.current = true;
+    handleStart(initialSource);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [participantId, started, participants]);
 
   function handleGenreChange(next: string[]) {
     setGenres(next);
@@ -177,17 +195,18 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
     setLoadingCard(false);
   }
 
-  function handleStart() {
+  function handleStart(startSource: "shared" | "catalog" = source) {
     cursorRef.current = 0;
     discoverStartRef.current = 0;
-    discoverExhaustedRef.current = source !== "catalog";
-    if (source === "shared") {
+    discoverExhaustedRef.current = startSource !== "catalog";
+    if (startSource === "shared") {
       poolRef.current = shared.map((appId) => ({ appId, tagIds: null }));
     } else {
       poolRef.current = [];
       const me = participants.find((p) => p.participantId === participantId);
       excludeSetRef.current = new Set(me?.steamLibraryAppIds ?? []);
     }
+    setSource(startSource);
     setExhausted(false);
     setStarted(true);
     advance();
@@ -243,7 +262,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
             </div>
             <button
               type="button"
-              onClick={handleStart}
+              onClick={() => handleStart()}
               className="bg-accent-brand mt-6 w-full rounded-full py-3 text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)]"
             >
               Zacznij przeglądać
