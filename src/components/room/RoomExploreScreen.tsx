@@ -6,13 +6,14 @@ import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import { ToggleChip } from "@/components/ui/ToggleChip";
-import { GenreFilterBar } from "@/components/swipe/GenreFilterBar";
+import { TagFilterBar, NEW_RELEASE_TAG, UPCOMING_TAG } from "@/components/swipe/TagFilterBar";
 import {
   computeSharedLibrary,
   matchesTagFilter,
   matchesMultiplayerFilter,
   type MultiplayerFilter,
 } from "@/lib/steamLibrary";
+import { isRecentRelease, isUpcomingSoon } from "@/lib/releaseCountdown";
 import {
   subscribeToParticipants,
   likeGame,
@@ -148,7 +149,15 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
         // nie mają go wcale -- filtry muszą dostać znormalizowane tablice,
         // nie surowe (potencjalnie undefined) pole z odpowiedzi API.
         if (!matchesMultiplayerFilter(data.tags ?? [], multiplayer)) continue;
-        if (!matchesTagFilter(data.genres ?? [], genres)) continue;
+        const realTags = genres.filter((v) => v !== NEW_RELEASE_TAG && v !== UPCOMING_TAG);
+        if (!matchesTagFilter(data.tags ?? [], realTags)) continue;
+        const wantsNew = genres.includes(NEW_RELEASE_TAG);
+        const wantsSoon = genres.includes(UPCOMING_TAG);
+        if (wantsNew || wantsSoon) {
+          const matchesDate =
+            (wantsNew && isRecentRelease(data.releaseDate)) || (wantsSoon && isUpcomingSoon(data.releaseDate));
+          if (!matchesDate) continue;
+        }
         setCurrentCard(toSwipeGame({ ...data, steamAppId }));
         setLoadingCard(false);
         return;
@@ -260,7 +269,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
         </Link>
       </div>
 
-      <GenreFilterBar value={genres} onChange={handleGenreChange} />
+      <TagFilterBar value={genres} onChange={handleGenreChange} />
 
       <div className="min-h-0 flex-1 lg:flex lg:flex-col lg:justify-center">
         {loadingCard ? (
