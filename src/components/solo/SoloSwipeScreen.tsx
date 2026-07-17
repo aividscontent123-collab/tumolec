@@ -66,9 +66,16 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
 
   async function fetchNextDiscoverPage() {
     const genresParam = genreFilter.join(",");
-    const res = await fetch(`/api/steam/discover?genres=${encodeURIComponent(genresParam)}&start=${discoverStartRef.current}`);
+    // discoverStartRef.current === 0 signals a fresh browsing session (mount,
+    // or the genre-filter-reset effect below) -- randomize only that first
+    // fetch, subsequent pages continue sequentially from the real start Steam
+    // returned.
+    const randomParam = discoverStartRef.current === 0 ? "&random=1" : "";
+    const res = await fetch(
+      `/api/steam/discover?genres=${encodeURIComponent(genresParam)}&start=${discoverStartRef.current}${randomParam}`,
+    );
     if (!res.ok) return null;
-    return (await res.json()) as { results: { appId: number; tagIds: number[] }[]; hasMore: boolean };
+    return (await res.json()) as { results: { appId: number; tagIds: number[] }[]; hasMore: boolean; start: number };
   }
 
   async function advance() {
@@ -76,7 +83,7 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
     while (true) {
       if (cursorRef.current >= poolRef.current.length) {
         if (discoverExhaustedRef.current) break;
-        let page: { results: { appId: number; tagIds: number[] }[]; hasMore: boolean } | null;
+        let page: { results: { appId: number; tagIds: number[] }[]; hasMore: boolean; start: number } | null;
         try {
           page = await fetchNextDiscoverPage();
         } catch {
@@ -90,7 +97,7 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
           discoverExhaustedRef.current = true;
           break;
         }
-        discoverStartRef.current += page.results.length;
+        discoverStartRef.current = page.start + page.results.length;
         if (!page.hasMore) discoverExhaustedRef.current = true;
         const fresh = page.results.filter((r) => !excludeSetRef.current.has(r.appId));
         poolRef.current.push(...fresh);
