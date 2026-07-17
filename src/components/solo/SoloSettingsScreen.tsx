@@ -20,11 +20,6 @@ const MULTIPLAYER_OPTIONS: { value: MultiplayerFilter; label: string }[] = [
   { value: "multi", label: "Wieloosobowe" },
 ];
 
-const SOURCE_OPTIONS: { value: "library" | "catalog"; label: string }[] = [
-  { value: "library", label: "Twoja biblioteka" },
-  { value: "catalog", label: "Cały katalog Steam" },
-];
-
 export function SoloSettingsScreen({
   onLoadLibrary,
   loading,
@@ -36,7 +31,6 @@ export function SoloSettingsScreen({
 }) {
   const router = useRouter();
   const [profile, setProfile] = useState("");
-  const [source, setSource] = useState<"library" | "catalog">("library");
   const [backlog, setBacklog] = useState<BacklogFilter>("never");
   const [multiplayer, setMultiplayer] = useState<MultiplayerFilter>("all");
   const [joinCode, setJoinCode] = useState("");
@@ -93,17 +87,11 @@ export function SoloSettingsScreen({
           Tumolec
         </h1>
         <p className="text-text-secondary mb-6 text-center text-sm">
-          Przeglądaj gry kurzące się w twojej bibliotece: w prawo znaczy „zagram", w lewo „pomiń".
+          Wybierz jak chcesz przeglądać gry — z własnej biblioteki albo z całego katalogu Steam.
         </p>
 
-        <div className="mb-5">
-          <ToggleChip value={source} options={SOURCE_OPTIONS} onChange={setSource} columns={2} />
-        </div>
-
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold text-foreground">
-            Twój profil Steam {source === "catalog" && "(opcjonalnie)"}
-          </span>
+          <span className="text-sm font-semibold text-foreground">Twój profil Steam</span>
           <input
             value={profile}
             onChange={(e) => setProfile(e.target.value)}
@@ -115,7 +103,7 @@ export function SoloSettingsScreen({
           </p>
         </div>
 
-        {source === "library" && (
+        {profile.trim() !== "" && (
           <div className="mt-5">
             <p className="mb-2 text-sm font-semibold text-foreground">Które gry pokazywać?</p>
             <ToggleChip value={backlog} options={BACKLOG_OPTIONS} onChange={setBacklog} columns={2} />
@@ -129,14 +117,24 @@ export function SoloSettingsScreen({
 
         {error && <p className="text-pass mt-4 text-sm">{error}</p>}
 
-        <button
-          type="button"
-          disabled={loading || (source === "library" && !profile.trim())}
-          onClick={() => onLoadLibrary(source, profile.trim(), backlog, multiplayer)}
-          className="bg-accent-brand mt-6 w-full rounded-full py-3 text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)] disabled:opacity-50"
-        >
-          {loading ? "Wczytuję…" : source === "catalog" ? "Przeglądaj katalog" : "Wczytaj bibliotekę"}
-        </button>
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => onLoadLibrary("catalog", profile.trim(), backlog, multiplayer)}
+            className="bg-accent-brand rounded-full py-3 text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)] disabled:opacity-50"
+          >
+            {loading ? "Wczytuję…" : "Eksploruj katalog"}
+          </button>
+          <button
+            type="button"
+            disabled={loading || !profile.trim()}
+            onClick={() => onLoadLibrary("library", profile.trim(), backlog, multiplayer)}
+            className="bg-accent-brand rounded-full py-3 text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)] disabled:opacity-50"
+          >
+            {loading ? "Wczytuję…" : "Eksploruj bibliotekę"}
+          </button>
+        </div>
 
         <div className="mt-6 flex flex-col items-center gap-2">
           <Link href="/packages" className="text-text-secondary text-center text-sm underline">
