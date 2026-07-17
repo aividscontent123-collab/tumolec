@@ -18,6 +18,7 @@ import {
   likeGame,
   setExploreGenreFilter,
   subscribeToExploreGenreFilter,
+  subscribeToLiked,
   type Participant,
 } from "@/lib/rooms";
 import { useParticipant } from "@/lib/useParticipant";
@@ -67,6 +68,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
   const [multiplayer, setMultiplayer] = useState<MultiplayerFilter>("multi");
   const [genres, setGenres] = useState<string[]>([]);
   const [source, setSource] = useState<"shared" | "catalog">("shared");
+  const [likedCount, setLikedCount] = useState(0);
   const [started, setStarted] = useState(false);
   const [currentCard, setCurrentCard] = useState<SwipeGame | null>(null);
   const [loadingCard, setLoadingCard] = useState(false);
@@ -81,6 +83,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
   // Filtr gatunku żyje w rooms/{roomCode}/session/state -- każdy gracz
   // subskrybuje na żywo i może pisać, zob. Task 2 (rooms.ts).
   useEffect(() => subscribeToExploreGenreFilter(roomCode, setGenres), [roomCode]);
+  useEffect(() => subscribeToLiked(roomCode, (games) => setLikedCount(games.length)), [roomCode]);
 
   // Steamowy `start` jest liczony względem konkretnego zapytania z tagami --
   // po zmianie filtra gatunku w trakcie przeglądania katalogu trzeba
@@ -243,7 +246,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
 
   return (
     <main className="bg-app-gradient flex h-dvh flex-col gap-4 px-[22px] pt-[18px] pb-[10px]">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 pr-12">
         <button
           type="button"
           onClick={() => setStarted(false)}
@@ -253,7 +256,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
           ‹
         </button>
         <Link href={`/room/${roomCode}/liked`} className="bg-secondary ml-auto rounded-full px-4 py-2 text-xs font-bold text-foreground">
-          ❤️ Polubione
+          ❤️ {likedCount}
         </Link>
       </div>
 

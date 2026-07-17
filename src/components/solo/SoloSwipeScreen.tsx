@@ -182,7 +182,7 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
 
   return (
     <main className="bg-app-gradient flex h-dvh flex-col gap-4 px-[22px] pt-[18px] pb-[10px]">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 pr-12">
         <button
           type="button"
           onClick={onExit}
