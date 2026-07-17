@@ -57,10 +57,11 @@ export function computeSharedLibrary(participants: { steamLibraryAppIds?: number
 }
 
 /** Puste `selected` = brak filtra (wszystko przechodzi). W przeciwnym razie
- * gra musi mieć co najmniej jeden z wybranych gatunków. */
-export function matchesGenreFilter(genres: string[], selected: string[]): boolean {
+ * gra musi mieć co najmniej jeden z wybranych tagów. Generyczna -- działa
+ * na dowolnej tablicy stringów (dziś: game.tags, dawniej: game.genres). */
+export function matchesTagFilter(tags: string[], selected: string[]): boolean {
   if (selected.length === 0) return true;
-  return genres.some((g) => selected.includes(g));
+  return tags.some((t) => selected.includes(t));
 }
 
 /** Czyste gatunki Steam (l=polish) zweryfikowane doświadczalnie podczas

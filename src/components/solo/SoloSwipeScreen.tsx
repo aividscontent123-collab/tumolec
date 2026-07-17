@@ -7,7 +7,7 @@ import { GenreFilterBar } from "@/components/swipe/GenreFilterBar";
 import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import type { SwipeGame } from "@/lib/types";
-import { matchesGenreFilter, matchesMultiplayerFilter, type MultiplayerFilter, type SteamOwnedGame } from "@/lib/steamLibrary";
+import { matchesTagFilter, matchesMultiplayerFilter, type MultiplayerFilter, type SteamOwnedGame } from "@/lib/steamLibrary";
 import { addLiked, getLocalLiked, saveLocalLiked } from "@/lib/localLiked";
 import { createRoom, joinRoom, hydrateAndAddGamesToPool } from "@/lib/rooms";
 import { MiniGameLauncher } from "@/components/minigames/MiniGameLauncher";
@@ -101,7 +101,7 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
         const tags = data.tags ?? [];
         const genres = data.genres ?? [];
         if (!matchesMultiplayerFilter(tags, multiplayerFilter)) continue;
-        if (!matchesGenreFilter(genres, genreFilter)) continue;
+        if (!matchesTagFilter(genres, genreFilter)) continue;
         setCurrentCard({
           steamAppId: data.steamAppId,
           title: data.name,

@@ -9,7 +9,7 @@ import { ToggleChip } from "@/components/ui/ToggleChip";
 import { GenreFilterBar } from "@/components/swipe/GenreFilterBar";
 import {
   computeSharedLibrary,
-  matchesGenreFilter,
+  matchesTagFilter,
   matchesMultiplayerFilter,
   type MultiplayerFilter,
 } from "@/lib/steamLibrary";
@@ -148,7 +148,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
         // nie mają go wcale -- filtry muszą dostać znormalizowane tablice,
         // nie surowe (potencjalnie undefined) pole z odpowiedzi API.
         if (!matchesMultiplayerFilter(data.tags ?? [], multiplayer)) continue;
-        if (!matchesGenreFilter(data.genres ?? [], genres)) continue;
+        if (!matchesTagFilter(data.genres ?? [], genres)) continue;
         setCurrentCard(toSwipeGame({ ...data, steamAppId }));
         setLoadingCard(false);
         return;
