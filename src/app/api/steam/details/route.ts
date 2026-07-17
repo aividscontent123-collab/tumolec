@@ -18,7 +18,13 @@ export async function GET(request: NextRequest) {
     const cached = await getDoc(cacheRef);
     if (cached.exists()) {
       const data = cached.data() as SteamCacheEntry;
-      if (Date.now() - data.cachedAt < CACHE_TTL_MS) {
+      // Wpisy sprzed dodania pola screenshots/trailerHlsUrl (commit 110bd72,
+      // 2026-07-14) nie mają go wcale w dokumencie -- wiek sam w sobie nie
+      // wystarczy, żeby uznać cache za kompletny. Wymuś refetch natychmiast
+      // zamiast czekać do 30-dniowego TTL.
+      const isFresh = Date.now() - data.cachedAt < CACHE_TTL_MS;
+      const hasMediaFields = Object.prototype.hasOwnProperty.call(data, "screenshots");
+      if (isFresh && hasMediaFields) {
         return NextResponse.json({ steamAppId, ...data });
       }
     }
