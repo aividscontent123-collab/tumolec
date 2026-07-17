@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchDiscoverPage, GENRE_TAG_IDS } from "@/lib/steam";
+import { fetchDiscoverPage, resolveSteamTagId } from "@/lib/steam";
 
 export async function GET(request: NextRequest) {
   const genresParam = request.nextUrl.searchParams.get("genres") ?? "";
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     .split(",")
     .map((g) => g.trim())
     .filter(Boolean)
-    .map((g) => GENRE_TAG_IDS[g])
+    .map((g) => resolveSteamTagId(g))
     .filter((id): id is number => id !== undefined);
 
   try {

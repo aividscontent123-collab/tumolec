@@ -2,6 +2,8 @@
  * przeglądarka nie może wołać Steama bezpośrednio (brak CORS). Dokładne
  * endpointy i uzasadnienie: work/active/Tumolec.md w vaulcie Obsidian. */
 
+import { STEAM_TAG_CATALOG } from "@/lib/steamTagCatalog";
+
 export type SteamSearchResult = {
   steamAppId: number;
   name: string;
@@ -145,19 +147,21 @@ export async function fetchSteamGameDetails(steamAppId: number): Promise<SteamCa
 /** Steam nie publikuje oficjalnej listy ID tagów -- wyznaczone i zweryfikowane
  * przez `GET https://store.steampowered.com/tagdata/populartags/polish`
  * (oficjalny endpoint Steama, ten sam co zasila filtr tagów na sklepie).
- * Nazwy tagów Steama różnią się nieco od `GENRE_OPTIONS` (np. tag to
- * "Strategiczne", genre to "Strategie") -- to ten sam gatunek, ID potwierdzone
- * ręcznie (tags=9 zwraca RimWorld/Factorio/Crusader Kings III itd.). */
-export const GENRE_TAG_IDS: Record<string, number> = {
-  Akcja: 19,
-  Przygodowe: 21,
-  RPG: 122,
+ * Nazwy tagów Steama czasem różnią się gramatycznie od tego co faktycznie ląduje
+ * w `game.tags` (np. tag to "Strategiczne", kategoria appdetails to "Strategie";
+ * "Wieloosobowe" vs "Wieloosobowa") -- to ten sam koncept, ID potwierdzone ręcznie
+ * (tags=9 zwraca RimWorld/Factorio/Crusader Kings III itd.). Znane rozbieżności
+ * nadpisane jawnie w TAG_ID_OVERRIDES, reszta katalogu dopasowywana po dokładnej
+ * nazwie z STEAM_TAG_CATALOG. */
+const TAG_ID_OVERRIDES: Record<string, number> = {
   Strategie: 9,
   Symulacje: 599,
-  Niezależne: 492,
-  Rekreacyjne: 597,
-  Sportowe: 701,
+  Wieloosobowa: 3859, // "Wieloosobowe" w oficjalnej liście, ten sam koncept
 };
+
+export function resolveSteamTagId(filterValue: string): number | undefined {
+  return TAG_ID_OVERRIDES[filterValue] ?? STEAM_TAG_CATALOG.find((t) => t.name === filterValue)?.id;
+}
 
 /** Czysta funkcja parsowania -- jedyny endpoint Steama w projekcie zwracający
  * HTML (`results_html`) zamiast JSON. Wyciąga appid z każdego wyniku wyszukiwania
