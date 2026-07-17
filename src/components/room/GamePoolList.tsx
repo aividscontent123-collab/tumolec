@@ -3,6 +3,7 @@
 import Image from "next/image";
 import type { PoolGame } from "@/lib/rooms";
 import { setGameStatus } from "@/lib/rooms";
+import { reviewScoreColorClass } from "@/lib/reviewScore";
 
 export function GamePoolList({ roomCode, games }: { roomCode: string; games: PoolGame[] }) {
   if (games.length === 0) {
@@ -31,7 +32,7 @@ export function GamePoolList({ roomCode, games }: { roomCode: string; games: Poo
           )}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-foreground">{game.title}</p>
-            <p className="text-rating text-xs">
+            <p className={`text-xs ${reviewScoreColorClass(game.reviewScorePercent)}`}>
               {game.reviewScorePercent}% {game.reviewSummary}
             </p>
           </div>

@@ -2,6 +2,7 @@
 
 import { ThumbsDown, ThumbsUp } from "lucide-react";
 import { daysUntil } from "@/lib/releaseCountdown";
+import { reviewScoreColorClass } from "@/lib/reviewScore";
 import type { SwipeGame } from "@/lib/types";
 
 /** Panel kontekstowy: dla gier nadchodzących (releaseDate.comingSoon) pokazuje
@@ -42,7 +43,9 @@ export function ReleaseOrReviewsPanel({ game }: { game: SwipeGame }) {
     <div className="bg-card border-border flex flex-col gap-3 rounded-2xl border p-4">
       <h3 className="font-heading text-sm font-bold text-foreground">Opinie Steam</h3>
       <div className="bg-secondary shrink-0 rounded-xl p-4 text-center">
-        <div className="font-heading text-rating text-2xl font-bold">{game.reviewScorePercent}%</div>
+        <div className={`font-heading text-2xl font-bold ${reviewScoreColorClass(game.reviewScorePercent)}`}>
+          {game.reviewScorePercent}%
+        </div>
         <div className="text-text-secondary text-sm">{game.reviewSummary}</div>
         <div className="text-text-secondary mt-1 text-xs">{game.totalReviews.toLocaleString("pl-PL")} recenzji</div>
       </div>
