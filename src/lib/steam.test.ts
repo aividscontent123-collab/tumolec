@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSteamAppDetails, parseDiscoverAppIds } from "./steam";
+import { parseSteamAppDetails, parseDiscoverAppIds, parseDiscoverResults, matchesTagOrCommunityFilter } from "./steam";
 
 describe("parseSteamAppDetails", () => {
   it("parses full data with movie, screenshots, release date and reviews", () => {
@@ -133,5 +133,78 @@ describe("parseDiscoverAppIds", () => {
   it("returns an empty array for a fragment with no results", () => {
     expect(parseDiscoverAppIds("")).toEqual([]);
     expect(parseDiscoverAppIds("<div>Brak wyników</div>")).toEqual([]);
+  });
+});
+
+describe("parseDiscoverResults", () => {
+  it("extracts appId + tagIds for every result", () => {
+    const html = `
+      <a href="https://store.steampowered.com/app/730/CounterStrike_2/" data-ds-appid="730" data-ds-itemkey="App_730" data-ds-tagids="[1663,1774,3859]" data-ds-descids="[2,5]" class="search_result_row">
+        <span class="title">Counter-Strike 2</span>
+      </a>
+      <a href="https://store.steampowered.com/app/1623730/Palworld/" data-ds-appid="1623730" data-ds-itemkey="App_1623730" data-ds-tagids="[1695,1662,916648]" data-ds-crtrids="[41648656]" class="search_result_row">
+        <span class="title">Palworld</span>
+      </a>
+    `;
+
+    expect(parseDiscoverResults(html)).toEqual([
+      { appId: 730, tagIds: [1663, 1774, 3859] },
+      { appId: 1623730, tagIds: [1695, 1662, 916648] },
+    ]);
+  });
+
+  it("handles a result with no data-ds-tagids attribute (empty tagIds, not an error)", () => {
+    const html = `
+      <a href="https://store.steampowered.com/app/730/CounterStrike_2/" data-ds-appid="730" class="search_result_row">
+        <span class="title">Counter-Strike 2</span>
+      </a>
+    `;
+
+    expect(parseDiscoverResults(html)).toEqual([{ appId: 730, tagIds: [] }]);
+  });
+
+  it("handles an empty tagids array", () => {
+    const html = `<a data-ds-appid="42" data-ds-tagids="[]"></a>`;
+    expect(parseDiscoverResults(html)).toEqual([{ appId: 42, tagIds: [] }]);
+  });
+
+  it("returns an empty array for a fragment with no results", () => {
+    expect(parseDiscoverResults("")).toEqual([]);
+    expect(parseDiscoverResults("<div>Brak wyników</div>")).toEqual([]);
+  });
+});
+
+describe("matchesTagOrCommunityFilter", () => {
+  it("matches everything when nothing is selected", () => {
+    expect(matchesTagOrCommunityFilter([], null, [])).toBe(true);
+    expect(matchesTagOrCommunityFilter(["Akcja"], [1, 2], [])).toBe(true);
+  });
+
+  it("matches via game.tags (genres/categories) regardless of candidateTagIds", () => {
+    expect(matchesTagOrCommunityFilter(["Akcja", "Kooperacja"], null, ["Kooperacja"])).toBe(true);
+    expect(matchesTagOrCommunityFilter(["Akcja", "Kooperacja"], [], ["Kooperacja"])).toBe(true);
+  });
+
+  it("matches via candidateTagIds when the tag isn't in genres/categories but resolves to a known Steam tag id", () => {
+    // Metroidvania (id 1628) is a community tag, never present in appdetails genres/categories.
+    expect(matchesTagOrCommunityFilter(["Akcja"], [1628, 999], ["Metroidvania"])).toBe(true);
+  });
+
+  it("does not match via candidateTagIds when candidateTagIds is null (library/shared source, no discover data)", () => {
+    expect(matchesTagOrCommunityFilter(["Akcja"], null, ["Metroidvania"])).toBe(false);
+  });
+
+  it("does not match when candidateTagIds is present but doesn't contain the resolved id", () => {
+    expect(matchesTagOrCommunityFilter(["Akcja"], [1, 2, 3], ["Metroidvania"])).toBe(false);
+  });
+
+  it("does not match an unresolvable selected tag via candidateTagIds (e.g. a date sentinel slipping through)", () => {
+    expect(matchesTagOrCommunityFilter([], [1, 2, 3], ["__not_a_real_tag__"])).toBe(false);
+  });
+
+  it("OR semantics across multiple selected tags, mixing both signals", () => {
+    expect(matchesTagOrCommunityFilter(["Akcja"], [1628], ["Metroidvania", "RPG"])).toBe(true); // via community id
+    expect(matchesTagOrCommunityFilter(["RPG"], [999], ["Metroidvania", "RPG"])).toBe(true); // via game.tags
+    expect(matchesTagOrCommunityFilter(["Akcja"], [999], ["Metroidvania", "RPG"])).toBe(false); // neither
   });
 });

@@ -9,10 +9,10 @@ import { ToggleChip } from "@/components/ui/ToggleChip";
 import { TagFilterBar, NEW_RELEASE_TAG, UPCOMING_TAG } from "@/components/swipe/TagFilterBar";
 import {
   computeSharedLibrary,
-  matchesTagFilter,
   matchesMultiplayerFilter,
   type MultiplayerFilter,
 } from "@/lib/steamLibrary";
+import { matchesTagOrCommunityFilter } from "@/lib/steam";
 import { isRecentRelease, isUpcomingSoon } from "@/lib/releaseCountdown";
 import {
   subscribeToParticipants,
@@ -75,7 +75,10 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
   const [loadingCard, setLoadingCard] = useState(false);
   const [exhausted, setExhausted] = useState(false);
   const cursorRef = useRef(0);
-  const poolRef = useRef<number[]>([]);
+  // tagIds: null = brak danych społecznościowych Steama (wspólna biblioteka
+  // nigdy nie przechodzi przez stronę wyników wyszukiwania) -- tylko kandydaci
+  // z katalogu mają realną (możliwie pustą) listę, zob. matchesTagOrCommunityFilter.
+  const poolRef = useRef<{ appId: number; tagIds: number[] | null }[]>([]);
   const discoverStartRef = useRef(0);
   const discoverExhaustedRef = useRef(false);
   const excludeSetRef = useRef<Set<number>>(new Set());
@@ -111,7 +114,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
     const genresParam = genres.join(",");
     const res = await fetch(`/api/steam/discover?genres=${encodeURIComponent(genresParam)}&start=${discoverStartRef.current}`);
     if (!res.ok) return null;
-    return (await res.json()) as { appIds: number[]; hasMore: boolean };
+    return (await res.json()) as { results: { appId: number; tagIds: number[] }[]; hasMore: boolean };
   }
 
   async function advance() {
@@ -119,7 +122,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
     while (true) {
       if (cursorRef.current >= poolRef.current.length) {
         if (discoverExhaustedRef.current) break;
-        let page: { appIds: number[]; hasMore: boolean } | null;
+        let page: { results: { appId: number; tagIds: number[] }[]; hasMore: boolean } | null;
         try {
           page = await fetchNextDiscoverPage();
         } catch {
@@ -129,20 +132,20 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
           discoverExhaustedRef.current = true;
           break;
         }
-        if (page.appIds.length === 0) {
+        if (page.results.length === 0) {
           discoverExhaustedRef.current = true;
           break;
         }
-        discoverStartRef.current += page.appIds.length;
+        discoverStartRef.current += page.results.length;
         if (!page.hasMore) discoverExhaustedRef.current = true;
-        const fresh = page.appIds.filter((id) => !excludeSetRef.current.has(id));
+        const fresh = page.results.filter((r) => !excludeSetRef.current.has(r.appId));
         poolRef.current.push(...fresh);
         continue;
       }
-      const steamAppId = poolRef.current[cursorRef.current];
+      const candidate = poolRef.current[cursorRef.current];
       cursorRef.current += 1;
       try {
-        const res = await fetch(`/api/steam/details?appid=${steamAppId}`);
+        const res = await fetch(`/api/steam/details?appid=${candidate.appId}`);
         const data = (await res.json()) as DetailsResponse;
         if (!res.ok || data.error) continue;
         // Wpisy steam_cache sprzed dodania danego pola (genres, topReviews...)
@@ -150,7 +153,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
         // nie surowe (potencjalnie undefined) pole z odpowiedzi API.
         if (!matchesMultiplayerFilter(data.tags ?? [], multiplayer)) continue;
         const realTags = genres.filter((v) => v !== NEW_RELEASE_TAG && v !== UPCOMING_TAG);
-        if (!matchesTagFilter(data.tags ?? [], realTags)) continue;
+        if (!matchesTagOrCommunityFilter(data.tags ?? [], candidate.tagIds, realTags)) continue;
         const wantsNew = genres.includes(NEW_RELEASE_TAG);
         const wantsSoon = genres.includes(UPCOMING_TAG);
         if (wantsNew || wantsSoon) {
@@ -158,7 +161,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
             (wantsNew && isRecentRelease(data.releaseDate)) || (wantsSoon && isUpcomingSoon(data.releaseDate));
           if (!matchesDate) continue;
         }
-        setCurrentCard(toSwipeGame({ ...data, steamAppId }));
+        setCurrentCard(toSwipeGame({ ...data, steamAppId: candidate.appId }));
         setLoadingCard(false);
         return;
       } catch {
@@ -175,7 +178,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
     discoverStartRef.current = 0;
     discoverExhaustedRef.current = source !== "catalog";
     if (source === "shared") {
-      poolRef.current = shared;
+      poolRef.current = shared.map((appId) => ({ appId, tagIds: null }));
     } else {
       poolRef.current = [];
       const me = participants.find((p) => p.participantId === participantId);

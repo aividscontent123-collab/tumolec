@@ -163,6 +163,31 @@ export function resolveSteamTagId(filterValue: string): number | undefined {
   return TAG_ID_OVERRIDES[filterValue] ?? STEAM_TAG_CATALOG.find((t) => t.name === filterValue)?.id;
 }
 
+/** Puste `selected` = brak filtra. W przeciwnym razie gra musi mieć CO NAJMNIEJ
+ * jeden z wybranych tagów -- sprawdzany dwoma niezależnymi sygnałami: (1) czy
+ * tag jest wśród `tags` gry (genres+categories z appdetails -- pokrywa 8
+ * gatunków, Kooperację, Multiplayer), (2) czy candidateTagIds (tagIds
+ * społecznościowe Steama z tej samej strony wyników co appid, dostępne TYLKO
+ * dla kandydatów ze źródła "Cały katalog Steam" -- appdetails ich nie zwraca
+ * w ogóle) zawiera ID odpowiadające temu tagowi. `candidateTagIds === null`
+ * (źródło biblioteka/wspólna pula, gdzie nie mamy tej strony wyników wcale)
+ * degraduje dokładnie do sprawdzenia (1) -- znane ograniczenie: tagi spoza
+ * genres/categories (np. Metroidvania, Roguelike) nigdy nie dopasują niczego
+ * w tych dwóch źródłach, tylko w katalogu. */
+export function matchesTagOrCommunityFilter(
+  tags: string[],
+  candidateTagIds: number[] | null,
+  selected: string[],
+): boolean {
+  if (selected.length === 0) return true;
+  return selected.some((tag) => {
+    if (tags.includes(tag)) return true;
+    if (candidateTagIds === null) return false;
+    const id = resolveSteamTagId(tag);
+    return id !== undefined && candidateTagIds.includes(id);
+  });
+}
+
 /** Czysta funkcja parsowania -- jedyny endpoint Steama w projekcie zwracający
  * HTML (`results_html`) zamiast JSON. Wyciąga appid z każdego wyniku wyszukiwania
  * przez `data-ds-appid="N"`. Zweryfikowane na żywo: zwykły regex wystarcza,
@@ -171,12 +196,43 @@ export function parseDiscoverAppIds(resultsHtml: string): number[] {
   return [...resultsHtml.matchAll(/data-ds-appid="(\d+)"/g)].map((m) => Number(m[1]));
 }
 
-export type DiscoverPage = { appIds: number[]; hasMore: boolean };
+export type DiscoverResult = { appId: number; tagIds: number[] };
+
+/** Jak parseDiscoverAppIds, ale wyciąga też `data-ds-tagids` -- lista ID
+ * tagów społecznościowych Steama przypisanych do KAŻDEJ gry. To inny system
+ * niż genres/categories z appdetails (appdetails ich w ogóle nie zwraca) --
+ * tagIds z tej strony wyników to jedyny sposób dopasowania tagów spoza
+ * genres/categories (np. Metroidvania, Roguelike) bez dodatkowego zapytania
+ * per gra. Dzieli HTML na fragmenty per-wynik (każdy zaczyna się od
+ * `<a ...data-ds-appid=`) i szuka obu atrybutów NIEZALEŻNIE w obrębie
+ * fragmentu, bo kolejność/obecność atrybutów bywa różna między wynikami
+ * (zweryfikowane na żywo). Brak data-ds-tagids u danego wyniku = pusta
+ * tablica, nie błąd. */
+export function parseDiscoverResults(resultsHtml: string): DiscoverResult[] {
+  const chunks = resultsHtml.split(/(?=<a[^>]*\bdata-ds-appid=)/);
+  const results: DiscoverResult[] = [];
+  for (const chunk of chunks) {
+    const appIdMatch = chunk.match(/data-ds-appid="(\d+)"/);
+    if (!appIdMatch) continue;
+    const tagIdsMatch = chunk.match(/data-ds-tagids="\[([\d,]*)\]"/);
+    const tagIds = tagIdsMatch
+      ? tagIdsMatch[1]
+          .split(",")
+          .filter(Boolean)
+          .map((s) => Number(s))
+      : [];
+    results.push({ appId: Number(appIdMatch[1]), tagIds });
+  }
+  return results;
+}
+
+export type DiscoverPage = { results: DiscoverResult[]; hasMore: boolean };
 
 /** `tagIds` puste = przeglądanie całego katalogu bez filtra (domyślne
  * sortowanie Steama = najpopularniejsze/bestsellery, nic dodatkowego nie
  * trzeba przekazywać). `count=25` na stronę, `start` to kursor paginacji
- * Steama (nie mylić z lokalnym cursorRef ekranów swipe). */
+ * Steama (nie mylić z lokalnym cursorRef ekranów swipe). Zwraca `results`
+ * (appId + tagIds społecznościowe każdej gry) zamiast samych appidów. */
 export async function fetchDiscoverPage(tagIds: number[], start: number): Promise<DiscoverPage> {
   const count = 25;
   const tagsParam = tagIds.length > 0 ? `&tags=${tagIds.join(",")}` : "";
@@ -184,6 +240,6 @@ export async function fetchDiscoverPage(tagIds: number[], start: number): Promis
   const res = await fetch(url);
   if (!res.ok) throw new Error(`search/results failed: ${res.status}`);
   const data = (await res.json()) as { results_html: string; total_count: number };
-  const appIds = parseDiscoverAppIds(data.results_html);
-  return { appIds, hasMore: start + appIds.length < data.total_count };
+  const results = parseDiscoverResults(data.results_html);
+  return { results, hasMore: start + results.length < data.total_count };
 }

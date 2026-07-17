@@ -7,7 +7,8 @@ import { TagFilterBar, NEW_RELEASE_TAG, UPCOMING_TAG } from "@/components/swipe/
 import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import type { SwipeGame } from "@/lib/types";
-import { matchesTagFilter, matchesMultiplayerFilter, type MultiplayerFilter, type SteamOwnedGame } from "@/lib/steamLibrary";
+import { matchesMultiplayerFilter, type MultiplayerFilter, type SteamOwnedGame } from "@/lib/steamLibrary";
+import { matchesTagOrCommunityFilter } from "@/lib/steam";
 import { isRecentRelease, isUpcomingSoon } from "@/lib/releaseCountdown";
 import { addLiked, getLocalLiked, saveLocalLiked } from "@/lib/localLiked";
 import { createRoom, joinRoom, hydrateAndAddGamesToPool } from "@/lib/rooms";
@@ -46,7 +47,12 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
   const router = useRouter();
   const [genreFilter, setGenreFilter] = useState<string[]>([]);
   const cursorRef = useRef(0);
-  const poolRef = useRef<number[]>(props.source === "library" ? props.pool.map((g) => g.steamAppId) : []);
+  // tagIds: null = brak danych społecznościowych Steama (biblioteka/wspólna pula
+  // nigdy nie przechodzi przez stronę wyników wyszukiwania) -- tylko kandydaci
+  // z katalogu mają realną (możliwie pustą) listę, zob. matchesTagOrCommunityFilter.
+  const poolRef = useRef<{ appId: number; tagIds: number[] | null }[]>(
+    props.source === "library" ? props.pool.map((g) => ({ appId: g.steamAppId, tagIds: null })) : [],
+  );
   const discoverStartRef = useRef(0);
   const discoverExhaustedRef = useRef(props.source === "library");
   const excludeSetRef = useRef(new Set<number>(props.source === "catalog" ? props.excludeAppIds : []));
@@ -62,7 +68,7 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
     const genresParam = genreFilter.join(",");
     const res = await fetch(`/api/steam/discover?genres=${encodeURIComponent(genresParam)}&start=${discoverStartRef.current}`);
     if (!res.ok) return null;
-    return (await res.json()) as { appIds: number[]; hasMore: boolean };
+    return (await res.json()) as { results: { appId: number; tagIds: number[] }[]; hasMore: boolean };
   }
 
   async function advance() {
@@ -70,7 +76,7 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
     while (true) {
       if (cursorRef.current >= poolRef.current.length) {
         if (discoverExhaustedRef.current) break;
-        let page: { appIds: number[]; hasMore: boolean } | null;
+        let page: { results: { appId: number; tagIds: number[] }[]; hasMore: boolean } | null;
         try {
           page = await fetchNextDiscoverPage();
         } catch {
@@ -80,20 +86,20 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
           discoverExhaustedRef.current = true;
           break;
         }
-        if (page.appIds.length === 0) {
+        if (page.results.length === 0) {
           discoverExhaustedRef.current = true;
           break;
         }
-        discoverStartRef.current += page.appIds.length;
+        discoverStartRef.current += page.results.length;
         if (!page.hasMore) discoverExhaustedRef.current = true;
-        const fresh = page.appIds.filter((id) => !excludeSetRef.current.has(id));
+        const fresh = page.results.filter((r) => !excludeSetRef.current.has(r.appId));
         poolRef.current.push(...fresh);
         continue;
       }
       const candidate = poolRef.current[cursorRef.current];
       cursorRef.current += 1;
       try {
-        const res = await fetch(`/api/steam/details?appid=${candidate}`);
+        const res = await fetch(`/api/steam/details?appid=${candidate.appId}`);
         const data = (await res.json()) as DetailsResponse;
         if (!res.ok || data.error) continue;
         // Wpisy steam_cache sprzed dodania danego pola (genres, topReviews...)
@@ -103,7 +109,7 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
         const genres = data.genres ?? [];
         if (!matchesMultiplayerFilter(tags, multiplayerFilter)) continue;
         const realTags = genreFilter.filter((v) => v !== NEW_RELEASE_TAG && v !== UPCOMING_TAG);
-        if (!matchesTagFilter(tags, realTags)) continue;
+        if (!matchesTagOrCommunityFilter(tags, candidate.tagIds, realTags)) continue;
         const wantsNew = genreFilter.includes(NEW_RELEASE_TAG);
         const wantsSoon = genreFilter.includes(UPCOMING_TAG);
         if (wantsNew || wantsSoon) {
