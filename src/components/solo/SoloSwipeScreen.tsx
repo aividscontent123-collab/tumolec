@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
-import { GenreFilterBar } from "@/components/swipe/GenreFilterBar";
+import { TagFilterBar, NEW_RELEASE_TAG, UPCOMING_TAG } from "@/components/swipe/TagFilterBar";
 import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import type { SwipeGame } from "@/lib/types";
 import { matchesTagFilter, matchesMultiplayerFilter, type MultiplayerFilter, type SteamOwnedGame } from "@/lib/steamLibrary";
+import { isRecentRelease, isUpcomingSoon } from "@/lib/releaseCountdown";
 import { addLiked, getLocalLiked, saveLocalLiked } from "@/lib/localLiked";
 import { createRoom, joinRoom, hydrateAndAddGamesToPool } from "@/lib/rooms";
 import { MiniGameLauncher } from "@/components/minigames/MiniGameLauncher";
@@ -101,7 +102,15 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
         const tags = data.tags ?? [];
         const genres = data.genres ?? [];
         if (!matchesMultiplayerFilter(tags, multiplayerFilter)) continue;
-        if (!matchesTagFilter(genres, genreFilter)) continue;
+        const realTags = genreFilter.filter((v) => v !== NEW_RELEASE_TAG && v !== UPCOMING_TAG);
+        if (!matchesTagFilter(tags, realTags)) continue;
+        const wantsNew = genreFilter.includes(NEW_RELEASE_TAG);
+        const wantsSoon = genreFilter.includes(UPCOMING_TAG);
+        if (wantsNew || wantsSoon) {
+          const matchesDate =
+            (wantsNew && isRecentRelease(data.releaseDate)) || (wantsSoon && isUpcomingSoon(data.releaseDate));
+          if (!matchesDate) continue;
+        }
         setCurrentCard({
           steamAppId: data.steamAppId,
           title: data.name,
@@ -232,7 +241,7 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
       )}
       {upgradeError && <p className="text-pass text-sm">{upgradeError}</p>}
 
-      <GenreFilterBar value={genreFilter} onChange={setGenreFilter} />
+      <TagFilterBar value={genreFilter} onChange={setGenreFilter} />
 
       <div className="min-h-0 flex-1 lg:flex lg:flex-col lg:justify-center">
         {loadingCard ? (
