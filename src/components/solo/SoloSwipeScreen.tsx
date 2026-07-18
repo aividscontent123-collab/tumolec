@@ -29,6 +29,7 @@ type DetailsResponse = {
   trailerThumbnail: string | null;
   totalReviews: number;
   topReviews: { author: string; text: string; votedUp: boolean }[];
+  hltbMainStory: number | null;
   error?: string;
 };
 
@@ -135,6 +136,7 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
           trailerThumbnail: data.trailerThumbnail,
           totalReviews: data.totalReviews ?? 0,
           topReviews: data.topReviews ?? [],
+          hltbMainStory: data.hltbMainStory ?? null,
         });
         setLoadingCard(false);
         return;

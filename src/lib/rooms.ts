@@ -115,6 +115,7 @@ function toPoolGame(gameDoc: QueryDocumentSnapshot<DocumentData>, cache: Documen
     trailerThumbnail: cache?.trailerThumbnail ?? null,
     totalReviews: cache?.totalReviews ?? 0,
     topReviews: cache?.topReviews ?? [],
+    hltbMainStory: cache?.hltbMainStory ?? null,
   };
 }
 
@@ -590,6 +591,7 @@ function toLikedGame(likedDoc: QueryDocumentSnapshot<DocumentData>, cache: Docum
     trailerThumbnail: cache?.trailerThumbnail ?? null,
     totalReviews: cache?.totalReviews ?? 0,
     topReviews: cache?.topReviews ?? [],
+    hltbMainStory: cache?.hltbMainStory ?? null,
   };
 }
 

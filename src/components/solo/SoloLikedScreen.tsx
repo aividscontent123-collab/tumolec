@@ -26,6 +26,7 @@ function toSwipeGame(data: DetailsResponse): SwipeGame {
     trailerThumbnail: data.trailerThumbnail,
     totalReviews: data.totalReviews ?? 0,
     topReviews: data.topReviews ?? [],
+    hltbMainStory: data.hltbMainStory ?? null,
   };
 }
 

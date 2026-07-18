@@ -29,6 +29,8 @@ export type SteamCacheEntry = {
   trailerThumbnail: string | null;
   totalReviews: number;
   topReviews: { author: string; text: string; votedUp: boolean }[];
+  hltbMainStory?: number | null;
+  hltbCachedAt?: number | null;
 };
 
 export async function searchSteamGames(term: string): Promise<SteamSearchResult[]> {

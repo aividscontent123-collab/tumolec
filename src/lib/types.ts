@@ -17,4 +17,5 @@ export type SwipeGame = {
   trailerThumbnail: string | null;
   totalReviews: number;
   topReviews: { author: string; text: string; votedUp: boolean }[];
+  hltbMainStory: number | null;
 };

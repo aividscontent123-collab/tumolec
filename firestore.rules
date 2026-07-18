@@ -113,6 +113,7 @@ service cloud.firestore {
           'minRequirements', 'recRequirements', 'cachedAt',
           'developers', 'releaseDate', 'screenshots',
           'trailerHlsUrl', 'trailerThumbnail', 'totalReviews', 'topReviews', 'genres',
+          'hltbMainStory', 'hltbCachedAt',
         ])
         && request.resource.data.name is string
         && request.resource.data.headerImageUrl is string
@@ -131,7 +132,9 @@ service cloud.firestore {
         && (request.resource.data.trailerThumbnail == null || request.resource.data.trailerThumbnail is string)
         && request.resource.data.totalReviews is number
         && request.resource.data.topReviews is list
-        && request.resource.data.genres is list;
+        && request.resource.data.genres is list
+        && (!('hltbMainStory' in request.resource.data) || request.resource.data.hltbMainStory == null || request.resource.data.hltbMainStory is number)
+        && (!('hltbCachedAt' in request.resource.data) || request.resource.data.hltbCachedAt == null || request.resource.data.hltbCachedAt is number);
     }
 
     match /packages/{packageId} {
