@@ -52,7 +52,7 @@ export function RoomTieBreaker({
   if (!gameA || !gameB) return null;
 
   function handleResolved() {
-    if (!tieBreak?.resultAppId) return;
+    if (tieBreak?.resultAppId == null) return;
     finishRound(roomCode, roundId, [tieBreak.resultAppId]);
   }
 

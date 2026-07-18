@@ -142,6 +142,7 @@ function RoundVoting({
   // Bezpieczne przy wyścigu: resolveRound jest czystą funkcją tych samych danych.
   useEffect(() => {
     if (!round || round.status !== "voting" || participants.length === 0) return;
+    if (round.tieBreak?.method) return; // manual tie-break owns the finish now
     if (swipes.length < round.poolAtStart.length * participants.length) return;
 
     const result = resolveRound(round.poolAtStart, swipes);
