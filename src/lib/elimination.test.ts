@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { breakTieDeterministically, resolveRound, type Swipe } from "./elimination";
+import { describe, expect, it, vi } from "vitest";
+import { breakTieDeterministically, pickTieBreakWinner, resolveRound, type Swipe } from "./elimination";
 
 function rightSwipes(steamAppId: number, participantIds: string[]): Swipe[] {
   return participantIds.map((participantId) => ({
@@ -111,5 +111,19 @@ describe("breakTieDeterministically", () => {
 
   it("zwraca pustą listę gdy brak dostępnych miejsc", () => {
     expect(breakTieDeterministically([10, 20], 0)).toEqual([]);
+  });
+});
+
+describe("pickTieBreakWinner", () => {
+  it("always returns one of the two candidates", () => {
+    const spy = vi.spyOn(Math, "random");
+
+    spy.mockReturnValue(0);
+    expect(pickTieBreakWinner([111, 222])).toBe(111);
+
+    spy.mockReturnValue(0.999);
+    expect(pickTieBreakWinner([111, 222])).toBe(222);
+
+    spy.mockRestore();
   });
 });

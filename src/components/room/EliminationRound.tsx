@@ -5,6 +5,7 @@ import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import { WinnerScreen } from "@/components/room/WinnerScreen";
+import { RoomTieBreaker } from "@/components/room/RoomTieBreaker";
 import { useParticipant } from "@/lib/useParticipant";
 import {
   subscribeToParticipants,
@@ -141,6 +142,7 @@ function RoundVoting({
   // Bezpieczne przy wyścigu: resolveRound jest czystą funkcją tych samych danych.
   useEffect(() => {
     if (!round || round.status !== "voting" || participants.length === 0) return;
+    if (round.tieBreak?.method) return; // manual tie-break owns the finish now
     if (swipes.length < round.poolAtStart.length * participants.length) return;
 
     const result = resolveRound(round.poolAtStart, swipes);
@@ -172,30 +174,46 @@ function RoundVoting({
   if (!round) {
     return <p className="text-text-secondary p-6 text-center text-sm">Przygotowuję rundę…</p>;
   }
-  if (myDeck.length === 0) {
-    return (
-      <p className="text-text-secondary p-6 text-center text-sm">Czekam, aż reszta ekipy skończy…</p>
-    );
-  }
 
-  const currentGame = gameByAppId.get(myDeck[0]);
-  if (!currentGame) return null;
+  const currentGame = myDeck.length > 0 ? gameByAppId.get(myDeck[0]) : undefined;
 
   function handleSwipe(direction: "left" | "right") {
+    if (myDeck.length === 0) return;
     castSwipe(roomCode, roundId, participantId, myDeck[0], direction);
   }
 
   return (
     <div className="flex h-dvh flex-col">
       <p className="text-text-secondary pt-6 pb-2 text-center text-xs tracking-widest">
-        RUNDA {roundNumber} · GRA {round.poolAtStart.length - myDeck.length + 1} Z {round.poolAtStart.length}
+        RUNDA {roundNumber} · GRA {Math.min(round.poolAtStart.length - myDeck.length + 1, round.poolAtStart.length)} Z {round.poolAtStart.length}
       </p>
       <main className="min-h-0 flex-1 px-[22px] pb-[18px] lg:flex lg:flex-col lg:justify-center">
-        <GameDetailLayout key={currentGame.steamAppId} game={currentGame}>
-          <SwipeCard key={currentGame.steamAppId} game={currentGame} onSwipe={handleSwipe} />
-        </GameDetailLayout>
+        {currentGame ? (
+          <GameDetailLayout key={currentGame.steamAppId} game={currentGame}>
+            <SwipeCard
+              key={currentGame.steamAppId}
+              game={currentGame}
+              onSwipe={round.tieBreak?.method ? () => {} : handleSwipe}
+            />
+          </GameDetailLayout>
+        ) : (
+          <p className="text-text-secondary p-6 text-center text-sm">Czekam, aż reszta ekipy skończy…</p>
+        )}
       </main>
-      <SwipeActionButtons onPass={() => handleSwipe("left")} onLike={() => handleSwipe("right")} />
+      {round.poolAtStart.length === 2 && (
+        <RoomTieBreaker
+          roomCode={roomCode}
+          roundId={roundId}
+          participantId={participantId}
+          participants={participants}
+          candidates={[round.poolAtStart[0], round.poolAtStart[1]]}
+          gameByAppId={gameByAppId}
+          tieBreak={round.tieBreak}
+        />
+      )}
+      {myDeck.length > 0 && !round.tieBreak?.method && (
+        <SwipeActionButtons onPass={() => handleSwipe("left")} onLike={() => handleSwipe("right")} />
+      )}
     </div>
   );
 }

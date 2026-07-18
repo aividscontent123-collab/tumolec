@@ -69,3 +69,11 @@ export function resolveRound(pool: number[], swipes: Swipe[]): RoundResult {
 export function breakTieDeterministically(tiedForCutoff: number[], slotsAvailable: number): number[] {
   return [...tiedForCutoff].sort((a, b) => a - b).slice(0, slotsAvailable);
 }
+
+/** Losuje zwycięzcę spośród dokładnie dwóch remisujących gier -- używane przez
+ * ręcznie wyzwalaną minigrę (moneta/koło) w finałowej rundzie Versus/Swipe,
+ * gdy grupa utknęła i nie chce dalej głosować. Nie ma związku z automatycznym
+ * `breakTieDeterministically` (środek drabinki, cichy, deterministyczny). */
+export function pickTieBreakWinner(candidates: [number, number]): number {
+  return candidates[Math.floor(Math.random() * 2)];
+}

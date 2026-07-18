@@ -12,7 +12,17 @@ const FULL_SPINS = 5;
  * aktualnie animowany -- każdy klient odpala animację lokalnie w momencie
  * odebrania update'u, więc uczestnicy widzą ją niemal jednocześnie (nie
  * idealnie zsynchronizowanie klatka-po-klatce, wystarczające dla 2-4 graczy). */
-export function CoinFlip3D({ coinflip }: { coinflip: CoinflipState | null }) {
+export function CoinFlip3D({
+  coinflip,
+  headsLabel = "Orzeł",
+  tailsLabel = "Reszka",
+  onFlipComplete,
+}: {
+  coinflip: CoinflipState | null;
+  headsLabel?: string;
+  tailsLabel?: string;
+  onFlipComplete?: () => void;
+}) {
   const controls = useAnimation();
   const lastTriggerMs = useRef<number | null>(null);
 
@@ -24,11 +34,13 @@ export function CoinFlip3D({ coinflip }: { coinflip: CoinflipState | null }) {
 
     const finalRotation = FULL_SPINS * 360 + (coinflip.result === "tails" ? 180 : 0);
     controls.set({ rotateY: 0 });
-    controls.start({
-      rotateY: finalRotation,
-      transition: { duration: FLIP_DURATION_S, ease: [0.16, 1, 0.3, 1] },
-    });
-  }, [coinflip, controls]);
+    controls
+      .start({
+        rotateY: finalRotation,
+        transition: { duration: FLIP_DURATION_S, ease: [0.16, 1, 0.3, 1] },
+      })
+      .then(() => onFlipComplete?.());
+  }, [coinflip, controls, onFlipComplete]);
 
   return (
     <div style={{ perspective: 900 }}>
@@ -45,7 +57,7 @@ export function CoinFlip3D({ coinflip }: { coinflip: CoinflipState | null }) {
             boxShadow: "0 8px 24px var(--accent-brand-soft)",
           }}
         >
-          Orzeł
+          {headsLabel}
         </div>
         <div
           className="absolute inset-0 flex items-center justify-center rounded-full text-lg font-bold text-white"
@@ -55,7 +67,7 @@ export function CoinFlip3D({ coinflip }: { coinflip: CoinflipState | null }) {
             backgroundColor: "oklch(0.3 0.02 265)",
           }}
         >
-          Reszka
+          {tailsLabel}
         </div>
       </motion.div>
     </div>

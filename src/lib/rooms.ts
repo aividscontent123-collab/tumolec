@@ -24,7 +24,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { SwipeGame } from "@/lib/types";
-import type { SwipeDirection } from "@/lib/elimination";
+import { pickTieBreakWinner, type SwipeDirection } from "@/lib/elimination";
 
 // Bez znaków mylonych przy czytaniu na głos / przepisywaniu z ekranu (0/O, 1/I/L).
 const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -199,12 +199,27 @@ export function subscribeToRoundSwipes(
   });
 }
 
+/** Stan ręcznie wyzwalanej minigry rozstrzygającej finałową dwójkę (moneta/koło).
+ * Żyje na dokumencie rundy (`eliminationRounds/{roundId}`), nie na `session/state`
+ * jak coinflip/wheel/plinko -- bo dotyczy KONKRETNEJ rundy, nie całego pokoju.
+ * `agreedParticipantIds` musi pokrywać WSZYSTKICH `participants`, zanim `method`
+ * może zostać ustawiony (patrz RoomTieBreaker) -- w przeciwieństwie do reszty
+ * minigier w apce, ta decyzja kończy całą sesję wyboru gry. */
+export type TieBreakState = {
+  agreedParticipantIds: string[];
+  method: "coin" | "wheel" | null;
+  resultAppId: number | null;
+  spinning: boolean;
+  triggeredAt: Timestamp | null;
+};
+
 export type RoundDoc = {
   roundNumber: number;
   poolAtStart: number[];
   status: "voting" | "finished";
   survivors: number[] | null;
   sessionId: string;
+  tieBreak?: TieBreakState;
 };
 
 export async function getRound(roomCode: string, roundId: string): Promise<RoundDoc | null> {
@@ -228,6 +243,47 @@ export async function getActiveRound(
   const rounds = snap.docs.map((d) => d.data() as RoundDoc);
   rounds.sort((a, b) => a.sessionId.localeCompare(b.sessionId));
   return { sessionId: rounds[0].sessionId, roundNumber: rounds[0].roundNumber };
+}
+
+// ── Tie-break finałowej dwójki (moneta/koło) ────────────────────────────────
+// Pole `tieBreak` na dokumencie KONKRETNEJ rundy -- zawsze `setDoc({ tieBreak: {...} }, { merge: true })`,
+// nigdy zapis całego dokumentu rundy, żeby nie nadpisać `poolAtStart`/`status`/`survivors`.
+
+async function mergeTieBreak(roomCode: string, roundId: string, tieBreak: Record<string, unknown>) {
+  await setDoc(doc(db, "rooms", roomCode, "eliminationRounds", roundId), { tieBreak }, { merge: true });
+}
+
+/** Toggle zgody jednego uczestnika na rozstrzygnięcie losowe. Próg "wszyscy się
+ * zgodzili" liczony po stronie UI (RoomTieBreaker) względem aktualnej listy
+ * `participants` -- ta funkcja tylko zapisuje/usuwa jeden wpis. */
+export async function toggleTieBreakAgreement(
+  roomCode: string,
+  roundId: string,
+  participantId: string,
+  agreed: boolean,
+) {
+  await mergeTieBreak(roomCode, roundId, {
+    agreedParticipantIds: agreed ? arrayUnion(participantId) : arrayRemove(participantId),
+  });
+}
+
+/** Wywoływane dopiero gdy WSZYSCY uczestnicy się zgodzili (sprawdzane przez UI) --
+ * losuje zwycięzcę OD RAZU (jak triggerCoinflip/triggerWheelSpin), animacja
+ * dogania wynik. Bez guarda przeciw podwójnemu triggerowi -- nieszkodliwe przy
+ * wyścigu dwóch klientów, tak samo tolerowane jak w triggerWheelSpin. */
+export async function triggerRoundTieBreak(
+  roomCode: string,
+  roundId: string,
+  method: "coin" | "wheel",
+  candidates: [number, number],
+) {
+  const resultAppId = pickTieBreakWinner(candidates);
+  await mergeTieBreak(roomCode, roundId, {
+    method,
+    resultAppId,
+    spinning: true,
+    triggeredAt: serverTimestamp(),
+  });
 }
 
 /** Wszystkie rundy pokoju (do rozbudowanej historii). */
