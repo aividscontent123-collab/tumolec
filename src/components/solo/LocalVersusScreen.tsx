@@ -4,6 +4,7 @@ import { useLocalVersus } from "@/lib/useLocalVersus";
 import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
+import { SoloTieBreaker } from "@/components/solo/SoloTieBreaker";
 import { WinnerScreen } from "@/components/room/WinnerScreen";
 import type { SwipeGame } from "@/lib/types";
 
@@ -12,7 +13,8 @@ import type { SwipeGame } from "@/lib/types";
  * wczytane, unikamy ponownego fetchowania /api/steam/details tutaj. */
 export function LocalVersusScreen({ games, onExit }: { games: SwipeGame[]; onExit: () => void }) {
   const gameByAppId = new Map(games.map((g) => [g.steamAppId, g]));
-  const { deck, poolSize, winner, vote } = useLocalVersus(games.map((g) => g.steamAppId));
+  const { pool, deck, poolSize, winner, vote, tieBreak, startTieBreak, resolveTieBreak } =
+    useLocalVersus(games.map((g) => g.steamAppId));
 
   if (winner !== null) {
     return <WinnerScreen game={gameByAppId.get(winner)} />;
@@ -48,7 +50,18 @@ export function LocalVersusScreen({ games, onExit }: { games: SwipeGame[]; onExi
           <SwipeCard key={currentGame.steamAppId} game={currentGame} onSwipe={handleSwipe} />
         </GameDetailLayout>
       </main>
-      <SwipeActionButtons onPass={() => handleSwipe("left")} onLike={() => handleSwipe("right")} />
+      {poolSize === 2 && (
+        <SoloTieBreaker
+          candidates={[pool[0], pool[1]]}
+          gameByAppId={gameByAppId}
+          tieBreak={tieBreak}
+          onChooseMethod={startTieBreak}
+          onResolved={resolveTieBreak}
+        />
+      )}
+      {!tieBreak && (
+        <SwipeActionButtons onPass={() => handleSwipe("left")} onLike={() => handleSwipe("right")} />
+      )}
     </div>
   );
 }
