@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useDrag } from "@use-gesture/react";
-import { ExternalLink } from "lucide-react";
+import { Clock, ExternalLink } from "lucide-react";
 import type { SwipeGame } from "@/lib/types";
 import { decideSwipeDirection } from "@/lib/swipeGesture";
 import { steamLibraryPortraitUrl } from "@/lib/steamImages";
@@ -116,6 +116,12 @@ export function SwipeCard({
                 "repeating-linear-gradient(-45deg, rgba(255,255,255,0.06) 0 14px, transparent 14px 28px)",
             }}
           />
+        )}
+        {game.hltbMainStory != null && (
+          <div className="bg-card/90 absolute bottom-2 right-2 z-10 flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-foreground backdrop-blur-sm">
+            <Clock className="h-3 w-3" />
+            ~{game.hltbMainStory}h
+          </div>
         )}
       </div>
 
