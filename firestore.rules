@@ -53,10 +53,17 @@ service cloud.firestore {
         // 'tieBreak' dodany dla ręcznej minigry rozstrzygającej finałową dwójkę
         // (moneta/koło) -- zgody uczestników + wybrana metoda/wynik, ten sam
         // niski próg zaufania co reszta rundy (brak logowania, Faza 1).
+        // `startRound` NIE ustawia `survivors` przy tworzeniu dokumentu (tylko
+        // `finishRound` je dopisuje) -- dotąd nieszkodliwe, bo jedyny update
+        // szedł przez finishRound (zawsze razem ze `status`). Zapis samego
+        // `tieBreak` jest pierwszym update'em, który tego nie robi, więc
+        // `request.resource.data.survivors` na świeżej rundzie nie istnieje --
+        // bezpieczny odczyt przez `.get(key, default)`, żeby nie wywalać
+        // całej reguły przy braku pola.
         allow update: if request.resource.data.diff(resource.data)
           .affectedKeys().hasOnly(['status', 'survivors', 'tieBreak'])
           && request.resource.data.status in ['voting', 'finished']
-          && (request.resource.data.survivors is list || request.resource.data.survivors == null)
+          && (request.resource.data.get('survivors', null) is list || request.resource.data.get('survivors', null) == null)
           && (!('tieBreak' in request.resource.data) || request.resource.data.tieBreak is map);
         allow delete: if false;
 
