@@ -724,11 +724,15 @@ export function LocalVersusScreen({ games, onExit }: { games: SwipeGame[]; onExi
           onResolved={resolveTieBreak}
         />
       )}
-      <SwipeActionButtons onPass={() => handleSwipe("left")} onLike={() => handleSwipe("right")} />
+      {!tieBreak && (
+        <SwipeActionButtons onPass={() => handleSwipe("left")} onLike={() => handleSwipe("right")} />
+      )}
     </div>
   );
 }
 ```
+
+(The `!tieBreak` guard mirrors a fix applied to the room version during Task 4's review: once a tie-break method is chosen, swiping must stop — otherwise a player could keep swiping while the coin/wheel animation resolves, racing the animation's `resolveTieBreak()` against the normal `vote()` path. Applying it here up front avoids repeating that review round.)
 
 - [ ] **Step 4: Typecheck and run the full test suite**
 
