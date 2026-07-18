@@ -1,4 +1,4 @@
-# UX Feedback Backlog — 10 poprawek zgłoszonych przez użytkownika (2026-07-18)
+# UX Feedback Backlog — 11 poprawek zgłoszonych przez użytkownika (2026-07-18)
 
 Data: 2026-07-18
 
@@ -13,6 +13,7 @@ Grupowanie w niezależne podprojekty (każdy może być osobnym cyklem spec→pl
 - **C. Nawigacja i koordynacja Versus** — pkt 4, 5, 6
 - **D. Recenzje** — pkt 7
 - **E. Czułość gestu swipe** — pkt 10 (zgłoszone jako dopisek w trakcie sesji)
+- **F. "Porównaj biblioteki" jako guzik w trakcie gry** — dopisane w trakcie sesji, doprecyzowane 2 pytaniami
 
 ---
 
@@ -116,6 +117,23 @@ Grupowanie w niezależne podprojekty (każdy może być osobnym cyklem spec→pl
 
 ---
 
+## F. "Porównaj biblioteki" jako guzik w trakcie gry (dopisane w trakcie sesji)
+
+**Doprecyzowane z użytkownikiem:** A2 zostaje bez zmian (pole profilu chowa się do kliknięcia "Eksploruj bibliotekę" — dopisek dotyczył czego innego). Nowa funkcja to **rozszerzenie istniejącego mechanizmu Co-op/Dodaj znajomego**, nie coś odrębnego.
+
+**Obecny stan (już zbudowane, tylko źle wyeksponowane):**
+- `RoomUpgradeButton.tsx` — pływający przycisk 🤝 "Co-op/Dodaj znajomego", już dostępny w dowolnym momencie przeglądania solo (`fixed bottom-6 left-4`) — tworzy pokój i pokazuje QR/kod do udostępnienia. Znajomy musi fizycznie dołączyć do pokoju i sam podać swój profil Steam (mechanizm nie pozwala "wyszukać" cudzej biblioteki bez ich udziału — trzeba mieć od nich dane owned-games z ich własnego wywołania Steam API).
+- `SharedLibrarySection.tsx` — już liczy `computeSharedLibrary(participants)` i pokazuje "Gry, które macie wspólnie (N)" + przycisk "Dodaj do puli". Już ma częściowo żądaną logikę komunikatu: gdy `withLibrary.length < 2` (mniej niż 2 uczestników podało bibliotekę) **komponent po prostu się nie renderuje** (`return null`) — cicho, bez komunikatu. Gdy ≥2 podało bibliotekę ale zero wspólnych gier, pokazuje komunikat tekstowy (już zgodny z życzeniem).
+- **Gap:** `SharedLibrarySection` renderowany jest dziś wyłącznie w `GamePoolScreen.tsx` (ekran ręcznej puli/lobby) — **nieobecny podczas aktywnego Explore/swipe**, czyli tam gdzie użytkownik faktycznie chce z niego skorzystać "w trakcie gry".
+
+**Decyzja:**
+1. Dodać dostęp do porównania bibliotek jako guzik/pigułkę widoczną podczas Explore w pokoju (`RoomExploreScreen.tsx`), nie tylko w `GamePoolScreen`. Dokładna forma (stały przycisk jak 🤝, czy pigułka w pasku obok filtrów) do ustalenia przy planowaniu — proponowany kierunek: przycisk otwierający ten sam panel co dziś `SharedLibrarySection`, ale z dwoma wynikami zamiast dzisiejszego cichego `return null`:
+   - **≥2 uczestników z udostępnioną biblioteką:** panel jak dziś (lista wspólnych gier / komunikat "brak wspólnych") + opcja ustawienia źródła Explore na "tylko wspólne gry" (nowy filtr, analogiczny do istniejącego przełącznika źródła biblioteka/katalog).
+   - **<2 uczestników z udostępnioną biblioteką:** zamiast ciszy, jawny komunikat "za mało graczy udostępniło profil Steam" + zachęta/link do zrobienia tego (skorzysta na tym A3 — wyszukiwanie po nazwie obniża tarcie przy podawaniu własnego profilu, więc więcej osób faktycznie to zrobi).
+2. Nie wymaga zmian w `computeSharedLibrary`/modelu danych — czysto UI: przeniesienie/duplikacja dostępu do istniejącego mechanizmu + jawny komunikat zamiast `return null`.
+
+---
+
 ## Priorytet wykonania (propozycja na start następnej sesji)
 
 Grupowane wg realnego ryzyka/rozmiaru, nie wg numeracji zgłoszenia:
@@ -123,9 +141,9 @@ Grupowane wg realnego ryzyka/rozmiaru, nie wg numeracji zgłoszenia:
 1. **Szybkie, niskiego ryzyka, wysoka wartość:** D (recenzje), C1 (powrót z Versus), B1 (strzałka w lewo + powrót na początek) — każde to zmiana w 1 pliku, brak niejasności projektowych.
 2. **Średnie:** E (czułość gestu — wymaga ręcznej weryfikacji na telefonie), B2 (reorder + naprawa niewidocznych tagów z wyszukiwarki), A1+A2 (uproszczenie startu, kilka plików ale mechaniczne).
 3. **Wymagają dodatkowego rekonesansu na starcie sesji:** B3 (Popularne — sygnały DLC/popularności do zweryfikowania na żywo), A3 (wyszukiwanie profilu — nowa integracja, żywa weryfikacja regexów na starcie jak przy Discover).
-4. **Najwięcej ruchomych części (Firestore, wielu uczestników):** C2 (powiadomienie Versus), C3 (przelosowanie w pokoju) — oba dotykają synchronizacji między graczami, warto robić po tym jak reszta jest zamknięta i przetestowana.
+4. **Najwięcej ruchomych części (Firestore, wielu uczestników):** C2 (powiadomienie Versus), C3 (przelosowanie w pokoju), F (porównaj biblioteki w trakcie gry — zależy od A3 dla pełnej wartości) — dotykają synchronizacji między graczami, warto robić po tym jak reszta jest zamknięta i przetestowana. F warto robić po A3, nie przed.
 
 ## Related
 
 - `work/active/Tumolec.md` — roadmapa Tumolec, Faza D i dalsze
-- `src/components/swipe/TagFilterBar.tsx`, `src/components/solo/SoloSettingsScreen.tsx`, `src/components/room/{VersusScreen,EliminationRound,WinnerScreen,LikedScreen}.tsx`, `src/components/swipe/SwipeCard.tsx`, `src/components/swipe/ReleaseOrReviewsPanel.tsx`, `src/lib/steam.ts` — pliki dotknięte przez poszczególne punkty
+- `src/components/swipe/TagFilterBar.tsx`, `src/components/solo/SoloSettingsScreen.tsx`, `src/components/room/{VersusScreen,EliminationRound,WinnerScreen,LikedScreen,RoomExploreScreen,SharedLibrarySection,GamePoolScreen}.tsx`, `src/components/solo/RoomUpgradeButton.tsx`, `src/components/swipe/SwipeCard.tsx`, `src/components/swipe/ReleaseOrReviewsPanel.tsx`, `src/lib/steam.ts` — pliki dotknięte przez poszczególne punkty
