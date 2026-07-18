@@ -40,5 +40,10 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "howlongtobeat": {
+      "axios": "^1.7.0"
+    }
   }
 }
