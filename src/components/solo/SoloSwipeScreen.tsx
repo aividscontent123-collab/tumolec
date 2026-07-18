@@ -7,31 +7,13 @@ import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import type { SwipeGame } from "@/lib/types";
 import { matchesMultiplayerFilter, type MultiplayerFilter, type SteamOwnedGame } from "@/lib/steamLibrary";
-import { matchesTagOrCommunityFilter } from "@/lib/steam";
+import { matchesTagOrCommunityFilter, toSwipeGame, type SteamCacheEntry } from "@/lib/steam";
 import { isRecentRelease, isUpcomingSoon } from "@/lib/releaseCountdown";
 import { addLiked, getLocalLiked, saveLocalLiked } from "@/lib/localLiked";
 import { MiniGameLauncher } from "@/components/minigames/MiniGameLauncher";
 import { RoomUpgradeButton } from "@/components/solo/RoomUpgradeButton";
 
-type DetailsResponse = {
-  steamAppId: number;
-  name: string;
-  headerImageUrl: string;
-  tags: string[];
-  genres: string[];
-  reviewScorePercent: number;
-  reviewSummary: string;
-  shortDescription: string;
-  developers: string[];
-  releaseDate: { comingSoon: boolean; date: string } | null;
-  screenshots: string[];
-  trailerHlsUrl: string | null;
-  trailerThumbnail: string | null;
-  totalReviews: number;
-  topReviews: { author: string; text: string; votedUp: boolean }[];
-  hltbMainStory: number | null;
-  error?: string;
-};
+type DetailsResponse = SteamCacheEntry & { steamAppId: number; error?: string };
 
 /** Solo: żadnego zapisu do Firestore, żadnego pokoju -- decyzje żyją tylko
  * w stanie tego komponentu, zgodnie z zachowaniem Dustpile ("Twoje wybory
@@ -104,11 +86,10 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
         const res = await fetch(`/api/steam/details?appid=${candidate.appId}`);
         const data = (await res.json()) as DetailsResponse;
         if (!res.ok || data.error) continue;
-        // Wpisy steam_cache sprzed dodania danego pola (genres, topReviews...)
-        // nie mają go wcale -- normalizacja od razu, przed filtrami i przed
-        // budową karty, żeby żadne z dwóch miejsc nie wywaliło się na undefined.
+        // Wpisy steam_cache sprzed dodania danego pola (tags, topReviews...)
+        // nie mają go wcale -- normalizacja od razu, przed filtrami, żeby nie
+        // wywaliły się na undefined (toSwipeGame normalizuje resztę pól samo).
         const tags = data.tags ?? [];
-        const genres = data.genres ?? [];
         if (!matchesMultiplayerFilter(tags, multiplayerFilter)) continue;
         const realTags = genreFilter.filter((v) => v !== NEW_RELEASE_TAG && v !== UPCOMING_TAG);
         if (!matchesTagOrCommunityFilter(tags, candidate.tagIds, realTags)) continue;
@@ -120,24 +101,7 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
           if (!matchesDate) continue;
         }
         excludeSetRef.current.add(candidate.appId);
-        setCurrentCard({
-          steamAppId: data.steamAppId,
-          title: data.name,
-          coverImageUrl: data.headerImageUrl,
-          tags,
-          genres,
-          reviewScorePercent: data.reviewScorePercent,
-          reviewSummary: data.reviewSummary,
-          shortDescription: data.shortDescription,
-          developers: data.developers ?? [],
-          releaseDate: data.releaseDate,
-          screenshots: data.screenshots ?? [],
-          trailerHlsUrl: data.trailerHlsUrl,
-          trailerThumbnail: data.trailerThumbnail,
-          totalReviews: data.totalReviews ?? 0,
-          topReviews: data.topReviews ?? [],
-          hltbMainStory: data.hltbMainStory ?? null,
-        });
+        setCurrentCard(toSwipeGame(data.steamAppId, data));
         setLoadingCard(false);
         return;
       } catch {

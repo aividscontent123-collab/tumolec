@@ -24,6 +24,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { SwipeGame } from "@/lib/types";
+import { toSwipeGame } from "@/lib/steam";
 import { pickTieBreakWinner, type SwipeDirection } from "@/lib/elimination";
 
 // Bez znaków mylonych przy czytaniu na głos / przepisywaniu z ekranu (0/O, 1/I/L).
@@ -97,25 +98,10 @@ export type PoolGame = SwipeGame & {
 function toPoolGame(gameDoc: QueryDocumentSnapshot<DocumentData>, cache: DocumentData | undefined): PoolGame {
   const g = gameDoc.data();
   return {
-    steamAppId: g.steamAppId,
+    ...toSwipeGame(g.steamAppId, cache),
     addedBy: g.addedBy,
     status: g.status,
     playedAt: g.playedAt?.toMillis?.() ?? null,
-    title: cache?.name ?? "…",
-    coverImageUrl: cache?.headerImageUrl,
-    tags: cache?.tags ?? [],
-    genres: cache?.genres ?? [],
-    reviewScorePercent: cache?.reviewScorePercent ?? 0,
-    reviewSummary: cache?.reviewSummary ?? "",
-    shortDescription: cache?.shortDescription ?? "",
-    developers: cache?.developers ?? [],
-    releaseDate: cache?.releaseDate ?? null,
-    screenshots: cache?.screenshots ?? [],
-    trailerHlsUrl: cache?.trailerHlsUrl ?? null,
-    trailerThumbnail: cache?.trailerThumbnail ?? null,
-    totalReviews: cache?.totalReviews ?? 0,
-    topReviews: cache?.topReviews ?? [],
-    hltbMainStory: cache?.hltbMainStory ?? null,
   };
 }
 
@@ -575,23 +561,8 @@ export type LikedGame = SwipeGame & { likedBy: string[] };
 function toLikedGame(likedDoc: QueryDocumentSnapshot<DocumentData>, cache: DocumentData | undefined): LikedGame {
   const d = likedDoc.data();
   return {
-    steamAppId: d.steamAppId,
+    ...toSwipeGame(d.steamAppId, cache),
     likedBy: d.likedBy ?? [],
-    title: cache?.name ?? "…",
-    coverImageUrl: cache?.headerImageUrl,
-    tags: cache?.tags ?? [],
-    genres: cache?.genres ?? [],
-    reviewScorePercent: cache?.reviewScorePercent ?? 0,
-    reviewSummary: cache?.reviewSummary ?? "",
-    shortDescription: cache?.shortDescription ?? "",
-    developers: cache?.developers ?? [],
-    releaseDate: cache?.releaseDate ?? null,
-    screenshots: cache?.screenshots ?? [],
-    trailerHlsUrl: cache?.trailerHlsUrl ?? null,
-    trailerThumbnail: cache?.trailerThumbnail ?? null,
-    totalReviews: cache?.totalReviews ?? 0,
-    topReviews: cache?.topReviews ?? [],
-    hltbMainStory: cache?.hltbMainStory ?? null,
   };
 }
 

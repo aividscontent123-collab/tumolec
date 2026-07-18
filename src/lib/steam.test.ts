@@ -6,7 +6,60 @@ import {
   matchesTagOrCommunityFilter,
   computeRandomDiscoverStart,
   shuffleDiscoverResults,
+  toSwipeGame,
 } from "./steam";
+
+describe("toSwipeGame", () => {
+  it("falls back to safe defaults when the cache document is missing", () => {
+    const game = toSwipeGame(1145360, undefined);
+    expect(game).toEqual({
+      steamAppId: 1145360,
+      title: "…",
+      coverImageUrl: undefined,
+      tags: [],
+      genres: [],
+      reviewScorePercent: 0,
+      reviewSummary: "",
+      shortDescription: "",
+      developers: [],
+      releaseDate: null,
+      screenshots: [],
+      trailerHlsUrl: null,
+      trailerThumbnail: null,
+      totalReviews: 0,
+      topReviews: [],
+      hltbMainStory: null,
+    });
+  });
+
+  it("maps a complete cache document through unchanged", () => {
+    const game = toSwipeGame(1145360, {
+      name: "Hades",
+      headerImageUrl: "https://example.com/header.jpg",
+      tags: ["Akcja"],
+      genres: ["RPG"],
+      reviewScorePercent: 98,
+      reviewSummary: "Bardzo pozytywne",
+      shortDescription: "Rogue-like.",
+      developers: ["Supergiant Games"],
+      releaseDate: { comingSoon: false, date: "2020" },
+      screenshots: ["https://example.com/s1.jpg"],
+      trailerHlsUrl: "https://example.com/trailer.m3u8",
+      trailerThumbnail: "https://example.com/thumb.jpg",
+      totalReviews: 3633,
+      topReviews: [{ author: "A", text: "Great", votedUp: true }],
+      hltbMainStory: 22,
+    });
+    expect(game.title).toBe("Hades");
+    expect(game.tags).toEqual(["Akcja"]);
+    expect(game.hltbMainStory).toBe(22);
+  });
+
+  it("falls back hltbMainStory to null when the field is absent (pre-HLTB cache entries)", () => {
+    const game = toSwipeGame(1145360, { name: "Hades" });
+    expect(game.hltbMainStory).toBeNull();
+  });
+});
 
 describe("parseSteamAppDetails", () => {
   it("parses full data with movie, screenshots, release date and reviews", () => {

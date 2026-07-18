@@ -13,7 +13,7 @@ import {
   matchesMultiplayerFilter,
   type MultiplayerFilter,
 } from "@/lib/steamLibrary";
-import { matchesTagOrCommunityFilter } from "@/lib/steam";
+import { matchesTagOrCommunityFilter, toSwipeGame } from "@/lib/steam";
 import { isRecentRelease, isUpcomingSoon } from "@/lib/releaseCountdown";
 import {
   subscribeToParticipants,
@@ -39,27 +39,6 @@ const SOURCE_OPTIONS: { value: "shared" | "catalog"; label: string }[] = [
 ];
 
 type DetailsResponse = SteamCacheEntry & { steamAppId: number; error?: string };
-
-function toSwipeGame(data: DetailsResponse): SwipeGame {
-  return {
-    steamAppId: data.steamAppId,
-    title: data.name,
-    coverImageUrl: data.headerImageUrl,
-    tags: data.tags ?? [],
-    genres: data.genres ?? [],
-    reviewScorePercent: data.reviewScorePercent,
-    reviewSummary: data.reviewSummary,
-    shortDescription: data.shortDescription,
-    developers: data.developers ?? [],
-    releaseDate: data.releaseDate,
-    screenshots: data.screenshots ?? [],
-    trailerHlsUrl: data.trailerHlsUrl,
-    trailerThumbnail: data.trailerThumbnail,
-    totalReviews: data.totalReviews ?? 0,
-    topReviews: data.topReviews ?? [],
-    hltbMainStory: data.hltbMainStory ?? null,
-  };
-}
 
 /** Explore w pokoju: swipe bez eliminacji po części wspólnej bibliotek
  * uczestników. Polubienie zapisuje do rooms/{code}/liked (Task 5), pominięcie
@@ -184,7 +163,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
           if (!matchesDate) continue;
         }
         excludeSetRef.current.add(candidate.appId);
-        setCurrentCard(toSwipeGame({ ...data, steamAppId: candidate.appId }));
+        setCurrentCard(toSwipeGame(candidate.appId, data));
         setLoadingCard(false);
         return;
       } catch {

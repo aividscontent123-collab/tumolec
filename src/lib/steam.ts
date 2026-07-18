@@ -3,6 +3,7 @@
  * endpointy i uzasadnienie: work/active/Tumolec.md w vaulcie Obsidian. */
 
 import { STEAM_TAG_CATALOG } from "@/lib/steamTagCatalog";
+import type { SwipeGame } from "@/lib/types";
 
 export type SteamSearchResult = {
   steamAppId: number;
@@ -32,6 +33,32 @@ export type SteamCacheEntry = {
   hltbMainStory?: number | null;
   hltbCachedAt?: number | null;
 };
+
+/** Mapuje dane z steam_cache (dokument Firestore -- może nie istnieć, może
+ * pochodzić sprzed dodania nowszego pola -- albo odpowiedź /api/steam/details,
+ * zawsze kompletna) na SwipeGame konsumowany przez karty swipe. Jedno miejsce
+ * zamiast osobnej kopii tego mapowania w każdym komponencie budującym kartę --
+ * dodanie nowego pola do SwipeGame wymaga edycji tylko tutaj. */
+export function toSwipeGame(steamAppId: number, data: Partial<SteamCacheEntry> | undefined): SwipeGame {
+  return {
+    steamAppId,
+    title: data?.name ?? "…",
+    coverImageUrl: data?.headerImageUrl,
+    tags: data?.tags ?? [],
+    genres: data?.genres ?? [],
+    reviewScorePercent: data?.reviewScorePercent ?? 0,
+    reviewSummary: data?.reviewSummary ?? "",
+    shortDescription: data?.shortDescription ?? "",
+    developers: data?.developers ?? [],
+    releaseDate: data?.releaseDate ?? null,
+    screenshots: data?.screenshots ?? [],
+    trailerHlsUrl: data?.trailerHlsUrl ?? null,
+    trailerThumbnail: data?.trailerThumbnail ?? null,
+    totalReviews: data?.totalReviews ?? 0,
+    topReviews: data?.topReviews ?? [],
+    hltbMainStory: data?.hltbMainStory ?? null,
+  };
+}
 
 export async function searchSteamGames(term: string): Promise<SteamSearchResult[]> {
   const url = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(term)}&l=polish&cc=PL`;

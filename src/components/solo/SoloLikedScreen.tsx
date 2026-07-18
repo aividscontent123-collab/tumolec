@@ -3,32 +3,11 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { addLiked, getLocalLiked, removeLiked, saveLocalLiked } from "@/lib/localLiked";
-import type { SteamCacheEntry } from "@/lib/steam";
+import { toSwipeGame, type SteamCacheEntry } from "@/lib/steam";
 import type { SwipeGame } from "@/lib/types";
 
 type SteamSuggestion = { steamAppId: number; name: string; tinyImage: string };
 type DetailsResponse = SteamCacheEntry & { steamAppId: number; error?: string };
-
-function toSwipeGame(data: DetailsResponse): SwipeGame {
-  return {
-    steamAppId: data.steamAppId,
-    title: data.name,
-    coverImageUrl: data.headerImageUrl,
-    tags: data.tags ?? [],
-    genres: data.genres ?? [],
-    reviewScorePercent: data.reviewScorePercent,
-    reviewSummary: data.reviewSummary,
-    shortDescription: data.shortDescription,
-    developers: data.developers ?? [],
-    releaseDate: data.releaseDate,
-    screenshots: data.screenshots ?? [],
-    trailerHlsUrl: data.trailerHlsUrl,
-    trailerThumbnail: data.trailerThumbnail,
-    totalReviews: data.totalReviews ?? 0,
-    topReviews: data.topReviews ?? [],
-    hltbMainStory: data.hltbMainStory ?? null,
-  };
-}
 
 /** Ekran Polubionych solo -- czyta appidy z localStorage, dociąga pełne dane
  * z steam_cache (przez /api/steam/details, cache-first jak wszędzie indziej),
@@ -56,7 +35,7 @@ export function SoloLikedScreen({
           const res = await fetch(`/api/steam/details?appid=${steamAppId}`);
           const data = (await res.json()) as DetailsResponse;
           if (!res.ok || data.error) return null;
-          return toSwipeGame({ ...data, steamAppId });
+          return toSwipeGame(steamAppId, data);
         } catch {
           return null;
         }
@@ -99,7 +78,7 @@ export function SoloLikedScreen({
       setGames((gs) =>
         gs.some((g) => g.steamAppId === suggestion.steamAppId)
           ? gs
-          : [...gs, toSwipeGame({ ...data, steamAppId: suggestion.steamAppId })],
+          : [...gs, toSwipeGame(suggestion.steamAppId, data)],
       );
       setTerm("");
       setSuggestions([]);
