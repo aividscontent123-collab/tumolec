@@ -189,7 +189,11 @@ function RoundVoting({
       <main className="min-h-0 flex-1 px-[22px] pb-[18px] lg:flex lg:flex-col lg:justify-center">
         {currentGame ? (
           <GameDetailLayout key={currentGame.steamAppId} game={currentGame}>
-            <SwipeCard key={currentGame.steamAppId} game={currentGame} onSwipe={handleSwipe} />
+            <SwipeCard
+              key={currentGame.steamAppId}
+              game={currentGame}
+              onSwipe={round.tieBreak?.method ? () => {} : handleSwipe}
+            />
           </GameDetailLayout>
         ) : (
           <p className="text-text-secondary p-6 text-center text-sm">Czekam, aż reszta ekipy skończy…</p>

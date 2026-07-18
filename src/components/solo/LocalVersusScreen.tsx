@@ -47,7 +47,11 @@ export function LocalVersusScreen({ games, onExit }: { games: SwipeGame[]; onExi
       </div>
       <main className="min-h-0 flex-1 px-[22px] pb-[18px] lg:flex lg:flex-col lg:justify-center">
         <GameDetailLayout key={currentGame.steamAppId} game={currentGame}>
-          <SwipeCard key={currentGame.steamAppId} game={currentGame} onSwipe={handleSwipe} />
+          <SwipeCard
+            key={currentGame.steamAppId}
+            game={currentGame}
+            onSwipe={tieBreak ? () => {} : handleSwipe}
+          />
         </GameDetailLayout>
       </main>
       {poolSize === 2 && (
