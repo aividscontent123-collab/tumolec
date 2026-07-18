@@ -50,10 +50,14 @@ service cloud.firestore {
           && request.resource.data.poolAtStart is list
           && request.resource.data.sessionId is string
           && request.resource.data.status == 'voting';
+        // 'tieBreak' dodany dla ręcznej minigry rozstrzygającej finałową dwójkę
+        // (moneta/koło) -- zgody uczestników + wybrana metoda/wynik, ten sam
+        // niski próg zaufania co reszta rundy (brak logowania, Faza 1).
         allow update: if request.resource.data.diff(resource.data)
-          .affectedKeys().hasOnly(['status', 'survivors'])
+          .affectedKeys().hasOnly(['status', 'survivors', 'tieBreak'])
           && request.resource.data.status in ['voting', 'finished']
-          && (request.resource.data.survivors is list || request.resource.data.survivors == null);
+          && (request.resource.data.survivors is list || request.resource.data.survivors == null)
+          && (!('tieBreak' in request.resource.data) || request.resource.data.tieBreak is map);
         allow delete: if false;
 
         match /swipes/{swipeId} {
