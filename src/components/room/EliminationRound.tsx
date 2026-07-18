@@ -5,6 +5,7 @@ import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import { WinnerScreen } from "@/components/room/WinnerScreen";
+import { RoomTieBreaker } from "@/components/room/RoomTieBreaker";
 import { useParticipant } from "@/lib/useParticipant";
 import {
   subscribeToParticipants,
@@ -195,6 +196,17 @@ function RoundVoting({
           <SwipeCard key={currentGame.steamAppId} game={currentGame} onSwipe={handleSwipe} />
         </GameDetailLayout>
       </main>
+      {round.poolAtStart.length === 2 && (
+        <RoomTieBreaker
+          roomCode={roomCode}
+          roundId={roundId}
+          participantId={participantId}
+          participants={participants}
+          candidates={[round.poolAtStart[0], round.poolAtStart[1]]}
+          gameByAppId={gameByAppId}
+          tieBreak={round.tieBreak}
+        />
+      )}
       <SwipeActionButtons onPass={() => handleSwipe("left")} onLike={() => handleSwipe("right")} />
     </div>
   );
