@@ -173,16 +173,11 @@ function RoundVoting({
   if (!round) {
     return <p className="text-text-secondary p-6 text-center text-sm">Przygotowuję rundę…</p>;
   }
-  if (myDeck.length === 0) {
-    return (
-      <p className="text-text-secondary p-6 text-center text-sm">Czekam, aż reszta ekipy skończy…</p>
-    );
-  }
 
-  const currentGame = gameByAppId.get(myDeck[0]);
-  if (!currentGame) return null;
+  const currentGame = myDeck.length > 0 ? gameByAppId.get(myDeck[0]) : undefined;
 
   function handleSwipe(direction: "left" | "right") {
+    if (myDeck.length === 0) return;
     castSwipe(roomCode, roundId, participantId, myDeck[0], direction);
   }
 
@@ -192,9 +187,13 @@ function RoundVoting({
         RUNDA {roundNumber} · GRA {round.poolAtStart.length - myDeck.length + 1} Z {round.poolAtStart.length}
       </p>
       <main className="min-h-0 flex-1 px-[22px] pb-[18px] lg:flex lg:flex-col lg:justify-center">
-        <GameDetailLayout key={currentGame.steamAppId} game={currentGame}>
-          <SwipeCard key={currentGame.steamAppId} game={currentGame} onSwipe={handleSwipe} />
-        </GameDetailLayout>
+        {currentGame ? (
+          <GameDetailLayout key={currentGame.steamAppId} game={currentGame}>
+            <SwipeCard key={currentGame.steamAppId} game={currentGame} onSwipe={handleSwipe} />
+          </GameDetailLayout>
+        ) : (
+          <p className="text-text-secondary p-6 text-center text-sm">Czekam, aż reszta ekipy skończy…</p>
+        )}
       </main>
       {round.poolAtStart.length === 2 && (
         <RoomTieBreaker
@@ -207,7 +206,9 @@ function RoundVoting({
           tieBreak={round.tieBreak}
         />
       )}
-      <SwipeActionButtons onPass={() => handleSwipe("left")} onLike={() => handleSwipe("right")} />
+      {myDeck.length > 0 && !round.tieBreak?.method && (
+        <SwipeActionButtons onPass={() => handleSwipe("left")} onLike={() => handleSwipe("right")} />
+      )}
     </div>
   );
 }
