@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { fetchSteamGameDetails, type SteamCacheEntry } from "@/lib/steam";
+import { fetchHltbMainStory } from "@/lib/hltb";
 
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 dni, zob. Tumolec.md
 
@@ -24,14 +25,20 @@ export async function GET(request: NextRequest) {
       // zamiast czekać do 30-dniowego TTL.
       const isFresh = Date.now() - data.cachedAt < CACHE_TTL_MS;
       const hasMediaFields = Object.prototype.hasOwnProperty.call(data, "screenshots");
-      if (isFresh && hasMediaFields) {
+      const hasHltbField = Object.prototype.hasOwnProperty.call(data, "hltbMainStory");
+      if (isFresh && hasMediaFields && hasHltbField) {
         return NextResponse.json({ steamAppId, ...data });
       }
     }
 
     const fresh = await fetchSteamGameDetails(steamAppId);
-    await setDoc(cacheRef, fresh);
-    return NextResponse.json({ steamAppId, ...fresh });
+    // Sekwencyjnie, nie równolegle: fetchHltbMainStory potrzebuje tytułu, który
+    // dopiero co zwrócił fetchSteamGameDetails. HLTB nigdy nie rzuca (zob. hltb.ts),
+    // więc błąd/brak wyniku tutaj nigdy nie blokuje zapisania danych Steama.
+    const hltbMainStory = await fetchHltbMainStory(fresh.name);
+    const withHltb: SteamCacheEntry = { ...fresh, hltbMainStory, hltbCachedAt: Date.now() };
+    await setDoc(cacheRef, withHltb);
+    return NextResponse.json({ steamAppId, ...withHltb });
   } catch {
     return NextResponse.json({ error: "Nie udało się pobrać danych ze Steam." }, { status: 502 });
   }
