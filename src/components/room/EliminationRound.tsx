@@ -17,6 +17,8 @@ import {
   subscribeToEliminationRounds,
   castSwipe,
   finishRound,
+  triggerReroll,
+  subscribeToRerollSignal,
   type Participant,
   type RoundDoc,
 } from "@/lib/rooms";
@@ -35,12 +37,14 @@ export function EliminationRound({
   gameByAppId,
   emptyMessage,
   backHref,
+  allowReroll,
 }: {
   roomCode: string;
   initialPool: number[];
   gameByAppId: Map<number, SwipeGame>;
   emptyMessage: string;
   backHref?: string;
+  allowReroll?: boolean;
 }) {
   const { participantId } = useParticipant(roomCode);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -82,6 +86,48 @@ export function EliminationRound({
     });
   }, [roomCode, session]);
 
+  // Reroll: gdy KTOKOLWIEK w pokoju kliknie "Przelosuj" (WinnerScreen), WSZYSCY
+  // klienci (w tym ten klikający -- subskrybują to samo pole) dostają ten sam
+  // sygnał i resetują lokalny `session` do null. To ponownie odpala bootstrap
+  // (tworzy nową sesję z fresh sessionId, roundNumber 1) i, jeśli kilku klientów
+  // trafi na to niemal jednocześnie, ISTNIEJĄCY mechanizm zbiegania rundy 1
+  // (efekt wyżej) rozwiąże ewentualny wyścig -- ta sama ścieżka co przy
+  // pierwszym wejściu w Versus, nic nowego do przetestowania w elimination.ts.
+  // `lastRerollRef`: pierwsza DOSTAWA-Z-WARTOŚCIĄ zaraz po subskrypcji to
+  // ZNANY, stary sygnał (Firestore onSnapshot dostarcza aktualny stan
+  // dokumentu od razu) -- ignorowana jako baseline, żeby zwykłe ponowne
+  // wejście na ekran po WCZEŚNIEJSZYM rerollu nie wywoływało fałszywego
+  // rerollu. `hasSeenAnyDeliveryRef` śledzi, czy w ogóle dostaliśmy już
+  // JAKĄKOLWIEK dostawę (także `null`, gdy pole `reroll` jeszcze nigdy nie
+  // istniało) -- bez tego, pierwszy w historii pokoju reroll (pole `reroll`
+  // najpierw puste, potem realny sygnał) zostałby błędnie potraktowany jako
+  // "baseline" i zignorowany zamiast zresetować sesję.
+  const lastRerollRef = useRef<number | null>(null);
+  const hasSeenAnyDeliveryRef = useRef(false);
+  useEffect(() => {
+    if (!allowReroll) return;
+    return subscribeToRerollSignal(roomCode, (signal) => {
+      // `triggeredAt` jest `null` przy optymistycznym lokalnym echo pending
+      // serverTimestamp() u KLIENTA PISZĄCEGO (Firestore doręcza pending write
+      // zanim serwer potwierdzi wartość) -- czekamy na kolejne doręczenie z
+      // realną wartością zamiast wywalać się na .toMillis().
+      if (!signal || !signal.triggeredAt) {
+        hasSeenAnyDeliveryRef.current = true;
+        return;
+      }
+      const ts = signal.triggeredAt.toMillis();
+      const isFirstDelivery = !hasSeenAnyDeliveryRef.current;
+      hasSeenAnyDeliveryRef.current = true;
+      if (isFirstDelivery) {
+        lastRerollRef.current = ts;
+        return;
+      }
+      if (ts === lastRerollRef.current) return;
+      lastRerollRef.current = ts;
+      setSession(null);
+    });
+  }, [roomCode, allowReroll]);
+
   if (!participantId) {
     return <p className="text-text-secondary p-6 text-center text-sm">Dołącz do pokoju w lobby.</p>;
   }
@@ -102,6 +148,7 @@ export function EliminationRound({
       participants={participants}
       gameByAppId={gameByAppId}
       backHref={backHref}
+      allowReroll={allowReroll}
       onAdvance={() => setSession((s) => (s ? { ...s, roundNumber: s.roundNumber + 1 } : s))}
     />
   );
@@ -115,6 +162,7 @@ function RoundVoting({
   participants,
   gameByAppId,
   backHref,
+  allowReroll,
   onAdvance,
 }: {
   roomCode: string;
@@ -124,6 +172,7 @@ function RoundVoting({
   participants: Participant[];
   gameByAppId: Map<number, SwipeGame>;
   backHref?: string;
+  allowReroll?: boolean;
   onAdvance: () => void;
 }) {
   const [round, setRound] = useState<RoundDoc | null>(null);
@@ -175,7 +224,12 @@ function RoundVoting({
   const myDeck = round?.poolAtStart.filter((id) => !myVotes.has(id)) ?? [];
 
   if (round?.status === "finished" && round.survivors?.length === 1) {
-    return <WinnerScreen game={gameByAppId.get(round.survivors[0])} />;
+    return (
+      <WinnerScreen
+        game={gameByAppId.get(round.survivors[0])}
+        onReroll={allowReroll ? () => triggerReroll(roomCode) : undefined}
+      />
+    );
   }
   if (!round) {
     return <p className="text-text-secondary p-6 text-center text-sm">Przygotowuję rundę…</p>;

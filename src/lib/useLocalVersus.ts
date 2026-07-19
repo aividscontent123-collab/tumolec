@@ -70,5 +70,12 @@ export function useLocalVersus(initialPool: number[]) {
   const myVotes = new Set(swipes.map((s) => s.steamAppId));
   const deck = pool.filter((id) => !myVotes.has(id));
 
-  return { pool, deck, poolSize: pool.length, winner, vote, tieBreak, startTieBreak, resolveTieBreak };
+  function restart() {
+    setPool(initialPool);
+    setSwipes([]);
+    setWinner(null);
+    setTieBreak(null);
+  }
+
+  return { pool, deck, poolSize: pool.length, winner, vote, tieBreak, startTieBreak, resolveTieBreak, restart };
 }

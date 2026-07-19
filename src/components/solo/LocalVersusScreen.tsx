@@ -13,11 +13,11 @@ import type { SwipeGame } from "@/lib/types";
  * wczytane, unikamy ponownego fetchowania /api/steam/details tutaj. */
 export function LocalVersusScreen({ games, onExit }: { games: SwipeGame[]; onExit: () => void }) {
   const gameByAppId = new Map(games.map((g) => [g.steamAppId, g]));
-  const { pool, deck, poolSize, winner, vote, tieBreak, startTieBreak, resolveTieBreak } =
+  const { pool, deck, poolSize, winner, vote, tieBreak, startTieBreak, resolveTieBreak, restart } =
     useLocalVersus(games.map((g) => g.steamAppId));
 
   if (winner !== null) {
-    return <WinnerScreen game={gameByAppId.get(winner)} />;
+    return <WinnerScreen game={gameByAppId.get(winner)} onReroll={restart} />;
   }
 
   const currentGame = gameByAppId.get(deck[0]);

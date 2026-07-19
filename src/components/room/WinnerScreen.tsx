@@ -16,7 +16,7 @@ const CONFETTI = [
 /** Ekran wyniku -- duży, satysfakcjonujący moment (brief: konfetti/skala,
  * referencja Duolingo). Konfetti to kilka animowanych kropek, nie biblioteka --
  * za mało tu potrzeba, żeby uzasadnić nową zależność. */
-export function WinnerScreen({ game }: { game: SwipeGame | undefined }) {
+export function WinnerScreen({ game, onReroll }: { game: SwipeGame | undefined; onReroll?: () => void }) {
   if (!game) {
     return <p className="text-text-secondary p-6 text-center text-sm">Ładowanie wyniku…</p>;
   }
@@ -73,6 +73,19 @@ export function WinnerScreen({ game }: { game: SwipeGame | undefined }) {
       >
         Zobacz na Steam
       </motion.a>
+
+      {onReroll && (
+        <motion.button
+          type="button"
+          onClick={onReroll}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="bg-secondary rounded-full px-8 py-3 text-sm font-bold text-foreground"
+        >
+          Przelosuj
+        </motion.button>
+      )}
     </main>
   );
 }

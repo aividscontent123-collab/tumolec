@@ -18,6 +18,7 @@ export function VersusScreen({ roomCode }: { roomCode: string }) {
       gameByAppId={gameByAppId}
       emptyMessage="Polub co najmniej 2 gry w Explore, zanim zaczniesz Versus."
       backHref={`/room/${roomCode}`}
+      allowReroll
     />
   );
 }

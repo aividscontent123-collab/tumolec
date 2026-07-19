@@ -304,6 +304,31 @@ export async function finishRound(roomCode: string, roundId: string, survivors: 
   });
 }
 
+/** Sygnał "przelosuj" dla WSZYSTKICH uczestników pokoju -- na TYM SAMYM
+ * `session/state` co reszta sygnałów mini-gier, zawsze `{ merge: true }`.
+ * Nie tworzy nowej rundy samo z siebie -- każdy klient (w tym ten klikający)
+ * subskrybuje to pole w EliminationRound.tsx i reaguje resetując swój lokalny
+ * stan `session` do null, co ponownie uruchamia ISTNIEJĄCY mechanizm
+ * bootstrapu nowej sesji (ten sam co przy pierwszym wejściu w Versus) oraz
+ * ISTNIEJĄCY mechanizm zbiegania do wspólnego sessionId przy wyścigu wielu
+ * klientów startujących rundę 1 równolegle -- zero nowej logiki eliminacji,
+ * tylko ponowne odpalenie już przetestowanych ścieżek. */
+export type RerollSignal = { triggeredAt: Timestamp };
+
+export async function triggerReroll(roomCode: string) {
+  await setDoc(
+    doc(db, "rooms", roomCode, "session", "state"),
+    { reroll: { triggeredAt: serverTimestamp() } },
+    { merge: true },
+  );
+}
+
+export function subscribeToRerollSignal(roomCode: string, onChange: (signal: RerollSignal | null) => void) {
+  return onSnapshot(doc(db, "rooms", roomCode, "session", "state"), (snap) => {
+    onChange(snap.exists() ? ((snap.data().reroll as RerollSignal | undefined) ?? null) : null);
+  });
+}
+
 // ── Rzut monetą ───────────────────────────────────────────────────────────
 // `rooms/{roomCode}/session/state` to WSPÓLNY dokument z zakładką koła fortuny
 // (pole `wheel`, inny agent). Piszemy wyłącznie przez `{ merge: true }` na
