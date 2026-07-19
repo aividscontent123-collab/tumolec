@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { roomExists, createRoom, joinRoom } from "@/lib/rooms";
 import { type BacklogFilter } from "@/lib/steamLibrary";
+import type { SteamProfileResult } from "@/lib/steamCommunitySearch";
 
 const BACKLOG_OPTIONS: { value: BacklogFilter; label: string }[] = [
   { value: "never", label: "Nigdy nie grane (0 min)" },
@@ -35,6 +37,36 @@ export function SoloSettingsScreen({
   const [createNickname, setCreateNickname] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [profileResults, setProfileResults] = useState<SteamProfileResult[]>([]);
+  const [profileSearching, setProfileSearching] = useState(false);
+
+  useEffect(() => {
+    const trimmed = profile.trim();
+    // Nie szukaj, gdy user już wkleił pełny link -- wyszukiwarka jest tylko
+    // dla wpisywania nazwy, wklejony link idzie bezpośrednio do onLoadLibrary.
+    if (trimmed.length < 2 || trimmed.includes("steamcommunity.com")) {
+      setProfileResults([]);
+      return;
+    }
+    const timeout = setTimeout(async () => {
+      setProfileSearching(true);
+      try {
+        const res = await fetch(`/api/steam/find-profile?q=${encodeURIComponent(trimmed)}`);
+        const data = await res.json();
+        setProfileResults(res.ok ? data.results : []);
+      } catch {
+        setProfileResults([]);
+      } finally {
+        setProfileSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [profile]);
+
+  function selectProfile(result: SteamProfileResult) {
+    setProfile(result.profileUrl);
+    setProfileResults([]);
+  }
 
   async function handleJoinByCode(e: React.FormEvent) {
     e.preventDefault();
@@ -112,14 +144,40 @@ export function SoloSettingsScreen({
         {showLibrary && (
           <div className="mt-5 flex flex-col gap-1.5">
             <span className="text-sm font-semibold text-foreground">Twój profil Steam</span>
-            <input
-              value={profile}
-              onChange={(e) => setProfile(e.target.value)}
-              placeholder="https://steamcommunity.com/id/..."
-              className="bg-card border-border rounded-xl border px-4 py-3 text-foreground"
-            />
+            <div className="relative">
+              <input
+                value={profile}
+                onChange={(e) => setProfile(e.target.value)}
+                placeholder="Szukaj po nazwie…"
+                className="bg-card border-border w-full rounded-xl border px-4 py-3 text-foreground"
+              />
+              {(profileResults.length > 0 || profileSearching) && (
+                <div className="bg-popover border-border absolute top-full right-0 left-0 z-10 mt-2 max-h-80 overflow-y-auto rounded-xl border">
+                  {profileSearching && <p className="text-text-secondary p-3 text-sm">Szukam…</p>}
+                  {profileResults.map((r) => (
+                    <button
+                      key={r.profileUrl}
+                      type="button"
+                      onClick={() => selectProfile(r)}
+                      className="flex w-full items-center gap-3 p-3 text-left hover:bg-white/5"
+                    >
+                      {r.avatarUrl && (
+                        <Image
+                          src={r.avatarUrl}
+                          alt=""
+                          width={32}
+                          height={32}
+                          className="h-8 w-8 shrink-0 rounded-full object-cover"
+                        />
+                      )}
+                      <span className="text-sm text-foreground">{r.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <p className="text-text-secondary text-xs">
-              Wklej link do profilu (steamcommunity.com/id/... lub /profiles/...) albo własną nazwę URL.
+              Albo wklej link bezpośrednio (steamcommunity.com/id/... lub /profiles/...).
             </p>
 
             {profile.trim() !== "" && (
