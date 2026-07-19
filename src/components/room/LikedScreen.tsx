@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { subscribeToLiked, unlikeGame, likeGame, type LikedGame } from "@/lib/rooms";
+import { useRouter } from "next/navigation";
+import { subscribeToLiked, unlikeGame, likeGame, signalVersusStart, type LikedGame } from "@/lib/rooms";
 import { AddGameForm } from "@/components/room/AddGameForm";
 import { useParticipant } from "@/lib/useParticipant";
 import { cn } from "@/lib/utils";
 
 export function LikedScreen({ roomCode }: { roomCode: string }) {
   const { participantId } = useParticipant(roomCode);
+  const router = useRouter();
   const [games, setGames] = useState<LikedGame[]>([]);
 
   useEffect(() => subscribeToLiked(roomCode, setGames), [roomCode]);
@@ -66,18 +68,22 @@ export function LikedScreen({ roomCode }: { roomCode: string }) {
         )}
       </div>
 
-      <Link
-        href={`/room/${roomCode}/versus`}
-        aria-disabled={games.length < 2}
+      <button
+        type="button"
+        disabled={games.length < 2}
+        onClick={() => {
+          if (participantId) signalVersusStart(roomCode, participantId);
+          router.push(`/room/${roomCode}/versus`);
+        }}
         className={cn(
           "rounded-full py-3 text-center text-sm font-bold",
           games.length >= 2
             ? "bg-accent-brand text-white shadow-[0_8px_24px_var(--accent-brand-soft)]"
-            : "bg-secondary text-text-secondary pointer-events-none",
+            : "bg-secondary text-text-secondary",
         )}
       >
         {games.length >= 2 ? "Rozpocznij Versus →" : "Polub co najmniej 2 gry"}
-      </Link>
+      </button>
     </main>
   );
 }

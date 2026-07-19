@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { subscribeToParticipants, subscribeToRoom, joinRoom, type Participant } from "@/lib/rooms";
+import {
+  subscribeToParticipants,
+  subscribeToRoom,
+  joinRoom,
+  subscribeToVersusStart,
+  type Participant,
+  type VersusStartSignal,
+} from "@/lib/rooms";
 import { useParticipant } from "@/lib/useParticipant";
 import { useRoomShare } from "@/lib/useRoomShare";
 import { ToggleChip } from "@/components/ui/ToggleChip";
@@ -10,11 +17,13 @@ import { filterByPlaytime, type BacklogFilter } from "@/lib/steamLibrary";
 import { MiniGameLauncher } from "@/components/minigames/MiniGameLauncher";
 
 const AVATAR_COLORS = ["#c2703d", "#2fb3a0", "#8b5cf6", "#e05e8f"];
+const VERSUS_START_STALE_MS = 5 * 60 * 1000; // baner znika po 5 minutach, żeby nie wisieć wiecznie po jednorazowym starcie
 
 export function RoomLobby({ roomCode }: { roomCode: string }) {
   const { participantId, nickname, save } = useParticipant(roomCode);
   const [roomName, setRoomName] = useState<string | null | undefined>(undefined);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [versusStart, setVersusStart] = useState<VersusStartSignal | null>(null);
   const [joinNickname, setJoinNickname] = useState("");
   const [joining, setJoining] = useState(false);
   const [joinProfile, setJoinProfile] = useState("");
@@ -24,9 +33,11 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
   useEffect(() => {
     const unsubRoom = subscribeToRoom(roomCode, (data) => setRoomName(data?.name ?? null));
     const unsubParticipants = subscribeToParticipants(roomCode, setParticipants);
+    const unsubVersusStart = subscribeToVersusStart(roomCode, setVersusStart);
     return () => {
       unsubRoom();
       unsubParticipants();
+      unsubVersusStart();
     };
   }, [roomCode]);
 
@@ -114,6 +125,11 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
     );
   }
 
+  const versusStarter =
+    versusStart && versusStart.triggeredBy !== participantId && Date.now() - versusStart.triggeredAt.toMillis() < VERSUS_START_STALE_MS
+      ? (participants.find((p) => p.participantId === versusStart.triggeredBy)?.nickname ?? "Ktoś")
+      : null;
+
   return (
     <main className="flex h-dvh flex-col px-[22px] pt-[18px] pb-[30px]">
       <h1 className="font-heading text-center text-[22px] font-bold text-foreground">
@@ -122,6 +138,18 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
       <p className="text-text-secondary mb-6 text-center text-xs tracking-widest">
         KOD POKOJU: {roomCode}
       </p>
+
+      {versusStarter && (
+        <div className="bg-accent-brand/15 border-accent-brand mb-4 flex items-center justify-between gap-3 rounded-xl border p-3">
+          <span className="text-sm text-foreground">{versusStarter} rozpoczyna Versus</span>
+          <Link
+            href={`/room/${roomCode}/versus`}
+            className="bg-accent-brand shrink-0 rounded-full px-3 py-1.5 text-xs font-bold text-white"
+          >
+            Dołącz
+          </Link>
+        </div>
+      )}
 
       {qrDataUrl && (
         <img

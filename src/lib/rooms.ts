@@ -411,6 +411,32 @@ export function subscribeToExploreGenreFilter(roomCode: string, onChange: (genre
   });
 }
 
+// ── Powiadomienie o starcie Versus ──────────────────────────────────────
+// TEN SAM dokument `rooms/{roomCode}/session/state` co coinflip/wheel/plinko/
+// exploreGenreFilter -- `setDoc(..., { merge: true })` na samym polu
+// `versusStart`, nigdy nadpisanie całego dokumentu. Nieblokujące: kliknięcie
+// "Rozpocznij Versus" i tak od razu przenosi klikającego, to pole tylko
+// informuje resztę uczestników przez realtime listener.
+
+export type VersusStartSignal = { triggeredBy: string; triggeredAt: Timestamp };
+
+export async function signalVersusStart(roomCode: string, triggeredBy: string) {
+  await setDoc(
+    doc(db, "rooms", roomCode, "session", "state"),
+    { versusStart: { triggeredBy, triggeredAt: serverTimestamp() } },
+    { merge: true },
+  );
+}
+
+export function subscribeToVersusStart(
+  roomCode: string,
+  onChange: (signal: VersusStartSignal | null) => void,
+) {
+  return onSnapshot(doc(db, "rooms", roomCode, "session", "state"), (snap) => {
+    onChange(snap.exists() ? ((snap.data().versusStart as VersusStartSignal | undefined) ?? null) : null);
+  });
+}
+
 // ── Paczki gier ───────────────────────────────────────────────────────────
 // Globalna, wspólna kolekcja top-level `packages/{packageId}` (bez scope'owania
 // per pokój -- jedna ekipa znajomych). Niezmienne po zapisaniu (v1): brak update/delete.
