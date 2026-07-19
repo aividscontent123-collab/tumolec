@@ -13,6 +13,7 @@ import {
 import { useParticipant } from "@/lib/useParticipant";
 import { useRoomShare } from "@/lib/useRoomShare";
 import { ToggleChip } from "@/components/ui/ToggleChip";
+import { SteamProfileSearchInput } from "@/components/ui/SteamProfileSearchInput";
 import { filterByPlaytime, type BacklogFilter } from "@/lib/steamLibrary";
 import { MiniGameLauncher } from "@/components/minigames/MiniGameLauncher";
 
@@ -93,11 +94,10 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
               maxLength={24}
               className="bg-card border-border rounded-xl border px-4 py-3 text-foreground"
             />
-            <input
+            <SteamProfileSearchInput
               value={joinProfile}
-              onChange={(e) => setJoinProfile(e.target.value)}
+              onChange={setJoinProfile}
               placeholder="Twój profil Steam (opcjonalnie)"
-              className="bg-card border-border rounded-xl border px-4 py-3 text-foreground"
             />
             {joinProfile.trim() && (
               <ToggleChip
