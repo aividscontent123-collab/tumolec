@@ -71,6 +71,26 @@ function pillClassName(active: boolean): string {
     : "border-border bg-card flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold text-text-secondary";
 }
 
+/** Pigułki do wyrenderowania: (1) dołącza "ad-hoc" tagi zaznaczone przez
+ * wyszukiwarkę, spoza PINNED_TAGS/GENRE_PILLS/EXTRA_POPULAR_PILLS -- bez tego
+ * są zaznaczone w stanie, ale niewidoczne w pasku, jedyny sposób ich
+ * odznaczenia był ponowne wyszukanie tej samej frazy; (2) sortuje całą listę
+ * zaznaczone-najpierw, zachowując dotychczasową kolejność w obu grupach
+ * (filter() jest stabilny) -- zaznaczona pigułka z dowolnej sekcji (nawet
+ * przypięta) przeskakuje przed niezaznaczone, priorytet na widoczność
+ * zaznaczenia nad hierarchią sekcji. */
+function buildDisplayPills(selected: string[]): Pill[] {
+  const basePills = [...PINNED_TAGS, ...GENRE_PILLS, ...EXTRA_POPULAR_PILLS];
+  const knownValues = new Set(basePills.map((p) => p.value));
+  const adHocPills: Pill[] = selected
+    .filter((v) => !knownValues.has(v))
+    .map((v) => ({ value: v, label: STEAM_TAG_CATALOG.find((t) => t.name === v)?.name ?? v, icon: null }));
+  const combined = [...basePills, ...adHocPills];
+  const selectedPills = combined.filter((p) => selected.includes(p.value));
+  const restPills = combined.filter((p) => !selected.includes(p.value));
+  return [...selectedPills, ...restPills];
+}
+
 /** Pasek tagów nad kartą swipe (Explore) -- dawniej GenreFilterBar (tylko 8
  * gatunków), teraz ogólny filtr: Kooperacja/Multiplayer/Nowości/Wkrótce na
  * stałe przypięte, potem 8 gatunków, potem popularne tagi Steama, na końcu
@@ -109,7 +129,7 @@ export function TagFilterBar({ value, onChange }: { value: string[]; onChange: (
       ? STEAM_TAG_CATALOG.filter((t) => t.name.toLowerCase().includes(trimmedQuery)).slice(0, SEARCH_RESULT_LIMIT)
       : [];
 
-  const allPills = [...PINNED_TAGS, ...GENRE_PILLS, ...EXTRA_POPULAR_PILLS];
+  const allPills = buildDisplayPills(value);
 
   return (
     <div className="flex flex-col gap-2">
