@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
@@ -33,11 +34,13 @@ export function EliminationRound({
   initialPool,
   gameByAppId,
   emptyMessage,
+  backHref,
 }: {
   roomCode: string;
   initialPool: number[];
   gameByAppId: Map<number, SwipeGame>;
   emptyMessage: string;
+  backHref?: string;
 }) {
   const { participantId } = useParticipant(roomCode);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -98,6 +101,7 @@ export function EliminationRound({
       participantId={participantId}
       participants={participants}
       gameByAppId={gameByAppId}
+      backHref={backHref}
       onAdvance={() => setSession((s) => (s ? { ...s, roundNumber: s.roundNumber + 1 } : s))}
     />
   );
@@ -110,6 +114,7 @@ function RoundVoting({
   participantId,
   participants,
   gameByAppId,
+  backHref,
   onAdvance,
 }: {
   roomCode: string;
@@ -118,6 +123,7 @@ function RoundVoting({
   participantId: string;
   participants: Participant[];
   gameByAppId: Map<number, SwipeGame>;
+  backHref?: string;
   onAdvance: () => void;
 }) {
   const [round, setRound] = useState<RoundDoc | null>(null);
@@ -182,11 +188,24 @@ function RoundVoting({
     castSwipe(roomCode, roundId, participantId, myDeck[0], direction);
   }
 
+  const progressText = `RUNDA ${roundNumber} · GRA ${Math.min(round.poolAtStart.length - myDeck.length + 1, round.poolAtStart.length)} Z ${round.poolAtStart.length}`;
+
   return (
     <div className="flex h-dvh flex-col">
-      <p className="text-text-secondary pt-6 pb-2 text-center text-xs tracking-widest">
-        RUNDA {roundNumber} · GRA {Math.min(round.poolAtStart.length - myDeck.length + 1, round.poolAtStart.length)} Z {round.poolAtStart.length}
-      </p>
+      {backHref ? (
+        <div className="flex items-center gap-3 px-[22px] pt-[18px] pb-2">
+          <Link
+            href={backHref}
+            aria-label="Wstecz"
+            className="bg-secondary flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full text-lg text-foreground"
+          >
+            ‹
+          </Link>
+          <p className="text-text-secondary flex-1 text-center text-xs tracking-widest">{progressText}</p>
+        </div>
+      ) : (
+        <p className="text-text-secondary pt-6 pb-2 text-center text-xs tracking-widest">{progressText}</p>
+      )}
       <main className="min-h-0 flex-1 px-[22px] pb-[18px] lg:flex lg:flex-col lg:justify-center">
         {currentGame ? (
           <GameDetailLayout key={currentGame.steamAppId} game={currentGame}>

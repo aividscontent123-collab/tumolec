@@ -17,6 +17,7 @@ export function VersusScreen({ roomCode }: { roomCode: string }) {
       initialPool={liked.map((g) => g.steamAppId)}
       gameByAppId={gameByAppId}
       emptyMessage="Polub co najmniej 2 gry w Explore, zanim zaczniesz Versus."
+      backHref={`/room/${roomCode}`}
     />
   );
 }
