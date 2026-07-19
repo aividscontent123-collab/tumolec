@@ -102,7 +102,7 @@ describe("parseSteamAppDetails", () => {
     expect(result.tags).toEqual(["Akcja", "RPG", "Single-player"]);
   });
 
-  it("picks top reviews by votes_up, truncates long text, caps at 3", () => {
+  it("picks top reviews by votes_up and truncates long text", () => {
     const data = { name: "Hades", header_image: "", short_description: "", pc_requirements: {} };
     const longText = "a".repeat(300);
     const reviews = {
@@ -117,10 +117,30 @@ describe("parseSteamAppDetails", () => {
 
     const result = parseSteamAppDetails(1145360, data, reviews);
 
-    expect(result.topReviews).toHaveLength(3);
+    expect(result.topReviews).toHaveLength(4);
     expect(result.topReviews[0]).toEqual({ author: "Top", text: "a".repeat(280) + "…", votedUp: true });
     expect(result.topReviews[1]).toEqual({ author: "Mid", text: "mid votes", votedUp: false });
     expect(result.topReviews[2].author).toBe("Fourth");
+    expect(result.topReviews[3].author).toBe("Low");
+  });
+
+  it("caps top reviews at 10", () => {
+    const data = { name: "Hades", header_image: "", short_description: "", pc_requirements: {} };
+    const reviews = {
+      query_summary: { review_score_desc: "", total_positive: 0, total_reviews: 0 },
+      reviews: Array.from({ length: 12 }, (_, i) => ({
+        review: `review ${i}`,
+        voted_up: true,
+        votes_up: 12 - i,
+        author: { personaname: `Author${i}` },
+      })),
+    };
+
+    const result = parseSteamAppDetails(1145360, data, reviews);
+
+    expect(result.topReviews).toHaveLength(10);
+    expect(result.topReviews[0].author).toBe("Author0");
+    expect(result.topReviews[9].author).toBe("Author9");
   });
 
   it("deduplicates tags when Steam repeats a genre/category description", () => {

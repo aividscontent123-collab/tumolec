@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ThumbsDown, ThumbsUp } from "lucide-react";
 import { daysUntil } from "@/lib/releaseCountdown";
 import { reviewScoreColorClass } from "@/lib/reviewScore";
@@ -8,7 +9,8 @@ import type { SwipeGame } from "@/lib/types";
 /** Panel kontekstowy: dla gier nadchodzących (releaseDate.comingSoon) pokazuje
  * odliczanie do premiery + link do listy życzeń Steam. Dla wydanych (albo bez
  * release_date w ogóle -- traktowane jak wydane) pokazuje opinie Steam + do
- * 3 najlepszych recenzji (najwięcej głosów "pomocne", zob. `parseSteamAppDetails`).
+ * 10 najlepszych recenzji (najwięcej głosów "pomocne", zob. `parseSteamAppDetails`),
+ * domyślnie zwinięte do 3 z przyciskiem "Pokaż więcej".
  * Świadomie BEZ hype score/obserwujących/graczy demo -- Steam Store API tych
  * danych nie ma, nie są przybliżane fejkowymi liczbami. */
 export function ReleaseOrReviewsPanel({ game }: { game: SwipeGame }) {
@@ -51,21 +53,41 @@ export function ReleaseOrReviewsPanel({ game }: { game: SwipeGame }) {
       </div>
 
       {game.topReviews.length > 0 && (
-        <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
-          {game.topReviews.map((review, i) => (
-            <div key={i} className="bg-secondary rounded-xl p-3">
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold text-foreground">{review.author}</span>
-                {review.votedUp ? (
-                  <ThumbsUp className="text-rating h-3.5 w-3.5 shrink-0" />
-                ) : (
-                  <ThumbsDown className="text-pass h-3.5 w-3.5 shrink-0" />
-                )}
-              </div>
-              <p className="text-text-secondary text-xs leading-snug whitespace-pre-line">{review.text}</p>
-            </div>
-          ))}
+        <ReviewsList reviews={game.topReviews} />
+      )}
+    </div>
+  );
+}
+
+const VISIBLE_REVIEW_COUNT = 3;
+
+function ReviewsList({ reviews }: { reviews: SwipeGame["topReviews"] }) {
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? reviews : reviews.slice(0, VISIBLE_REVIEW_COUNT);
+
+  return (
+    <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
+      {visible.map((review, i) => (
+        <div key={i} className="bg-secondary rounded-xl p-3">
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-foreground">{review.author}</span>
+            {review.votedUp ? (
+              <ThumbsUp className="text-rating h-3.5 w-3.5 shrink-0" />
+            ) : (
+              <ThumbsDown className="text-pass h-3.5 w-3.5 shrink-0" />
+            )}
+          </div>
+          <p className="text-text-secondary text-xs leading-snug whitespace-pre-line">{review.text}</p>
         </div>
+      ))}
+      {!showAll && reviews.length > VISIBLE_REVIEW_COUNT && (
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="text-accent-brand text-center text-xs font-semibold"
+        >
+          Pokaż więcej recenzji
+        </button>
       )}
     </div>
   );

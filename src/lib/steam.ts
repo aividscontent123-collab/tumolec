@@ -101,7 +101,7 @@ type AppReviewsResponse = {
   }[];
 };
 
-const TOP_REVIEW_COUNT = 3;
+const TOP_REVIEW_COUNT = 10;
 const TOP_REVIEW_TEXT_MAX_LENGTH = 280;
 
 /** Czysta funkcja parsowania -- wydzielona z fetchSteamGameDetails żeby dało
