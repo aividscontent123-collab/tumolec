@@ -6,16 +6,11 @@ import { useSearchParams } from "next/navigation";
 import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
-import { ToggleChip } from "@/components/ui/ToggleChip";
 import { ParticipantAvatarRow } from "@/components/ui/ParticipantAvatarRow";
 import { VersusStartBanner } from "@/components/ui/VersusStartBanner";
 import { SharedLibrarySection } from "@/components/room/SharedLibrarySection";
 import { TagFilterBar, NEW_RELEASE_TAG, UPCOMING_TAG } from "@/components/swipe/TagFilterBar";
-import {
-  computeSharedLibrary,
-  matchesMultiplayerFilter,
-  type MultiplayerFilter,
-} from "@/lib/steamLibrary";
+import { computeSharedLibrary } from "@/lib/steamLibrary";
 import { matchesTagOrCommunityFilter, toSwipeGame } from "@/lib/steam";
 import { isRecentRelease, isUpcomingSoon } from "@/lib/releaseCountdown";
 import {
@@ -30,34 +25,28 @@ import { useParticipant } from "@/lib/useParticipant";
 import type { SteamCacheEntry } from "@/lib/steam";
 import type { SwipeGame } from "@/lib/types";
 
-const MULTIPLAYER_OPTIONS: { value: MultiplayerFilter; label: string }[] = [
-  { value: "all", label: "Wszystkie" },
-  { value: "solo", label: "Jednoosobowe" },
-  { value: "multi", label: "Wieloosobowe" },
-];
-
-const SOURCE_OPTIONS: { value: "shared" | "catalog"; label: string }[] = [
-  { value: "shared", label: "Wspólna biblioteka" },
-  { value: "catalog", label: "Cały katalog Steam" },
-];
-
 type DetailsResponse = SteamCacheEntry & { steamAppId: number; error?: string };
 
 /** Explore w pokoju: swipe bez eliminacji po części wspólnej bibliotek
  * uczestników. Polubienie zapisuje do rooms/{code}/liked (Task 5), pominięcie
  * po prostu przechodzi dalej -- ten sam wzorzec leniwego fetchowania co
- * SoloSwipeScreen.advance(), tylko źródło appidów to computeSharedLibrary. */
+ * SoloSwipeScreen.advance(), tylko źródło appidów to computeSharedLibrary.
+ *
+ * Bez osobnego ekranu wyboru źródła/trybu gry przed startem -- przeglądanie
+ * zaczyna się od razu po dołączeniu (domyślnie cały katalog), solo/multi
+ * i gatunek są już pigułkami w TagFilterBar. Przełączenie na wspólną
+ * bibliotekę w trakcie robi się przez rozszerzony panel "🤝 Porównaj"
+ * (restartuje talię od tego źródła, nie przerywa właśnie oglądanej karty
+ * w połowie -- handleStart i tak czyści cały stan pobierania). */
 export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
   const { participantId } = useParticipant(roomCode);
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [multiplayer, setMultiplayer] = useState<MultiplayerFilter>("multi");
   const [genres, setGenres] = useState<string[]>([]);
-  const [source, setSource] = useState<"shared" | "catalog">("shared");
+  const [source, setSource] = useState<"shared" | "catalog">("catalog");
   const [likedCount, setLikedCount] = useState(0);
-  const [started, setStarted] = useState(false);
   const [showSharedLibrary, setShowSharedLibrary] = useState(false);
   const [currentCard, setCurrentCard] = useState<SwipeGame | null>(null);
-  const [loadingCard, setLoadingCard] = useState(false);
+  const [loadingCard, setLoadingCard] = useState(true);
   const [exhausted, setExhausted] = useState(false);
   const cursorRef = useRef(0);
   // tagIds: null = brak danych społecznościowych Steama (wspólna biblioteka
@@ -68,7 +57,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
   const discoverExhaustedRef = useRef(false);
   const excludeSetRef = useRef<Set<number>>(new Set());
   const searchParams = useSearchParams();
-  const autostartedRef = useRef(false);
+  const startedRef = useRef(false);
 
   useEffect(() => subscribeToParticipants(roomCode, setParticipants), [roomCode]);
   // Filtr gatunku żyje w rooms/{roomCode}/session/state -- każdy gracz
@@ -82,7 +71,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
   // zamiast najlepszych dopasowań. Nie dotyka currentCard -- karta na ekranie
   // zostaje, zmienia się tylko to, co dociągnie następny advance().
   useEffect(() => {
-    if (!started || source !== "catalog") return;
+    if (!startedRef.current || source !== "catalog") return;
     discoverStartRef.current = 0;
     discoverExhaustedRef.current = false;
     poolRef.current = [];
@@ -90,20 +79,20 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genres]);
 
-  // Host przychodzący z RoomUpgradeButton (SoloSwipeScreen) -- pomija ekran
-  // wyboru źródła i startuje od razu z przekazanym source. Dla "shared"
-  // czekamy aż subscribeToParticipants dostarczy przynajmniej naszego
-  // własnego uczestnika, inaczej `shared` policzyłoby się z pustej listy.
+  // Przeglądanie zaczyna się od razu, bez ekranu wyboru -- domyślnie cały
+  // katalog. RoomUpgradeButton (upgrade solo->pokój) może wskazać `?source=shared`
+  // w linku, żeby wylądować od razu we wspólnej bibliotece zamiast katalogu;
+  // dla "shared" czekamy aż subscribeToParticipants dostarczy przynajmniej
+  // naszego własnego uczestnika, inaczej `shared` policzyłoby się z pustej listy.
   useEffect(() => {
-    if (autostartedRef.current || started || !participantId) return;
-    const autostart = searchParams.get("autostart") === "1";
-    const initialSource = searchParams.get("source");
-    if (!autostart || (initialSource !== "shared" && initialSource !== "catalog")) return;
+    if (startedRef.current || !participantId) return;
+    const requestedSource = searchParams.get("source");
+    const initialSource: "shared" | "catalog" = requestedSource === "shared" ? "shared" : "catalog";
     if (initialSource === "shared" && participants.length === 0) return;
-    autostartedRef.current = true;
+    startedRef.current = true;
     handleStart(initialSource);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [participantId, started, participants]);
+  }, [participantId, participants]);
 
   function handleGenreChange(next: string[]) {
     setGenres(next);
@@ -155,8 +144,10 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
         if (!res.ok || data.error) continue;
         // Wpisy steam_cache sprzed dodania danego pola (genres, topReviews...)
         // nie mają go wcale -- filtry muszą dostać znormalizowane tablice,
-        // nie surowe (potencjalnie undefined) pole z odpowiedzi API.
-        if (!matchesMultiplayerFilter(data.tags ?? [], multiplayer)) continue;
+        // nie surowe (potencjalnie undefined) pole z odpowiedzi API. Filtr
+        // solo/multi to już pigułki Jednoosobowa/Kooperacja/Wieloosobowa w
+        // TagFilterBar (genres), nie osobny mechanizm -- matchesTagOrCommunityFilter
+        // niżej go pokrywa tak samo jak każdy inny tag.
         const realTags = genres.filter((v) => v !== NEW_RELEASE_TAG && v !== UPCOMING_TAG);
         if (!matchesTagOrCommunityFilter(data.tags ?? [], candidate.tagIds, realTags)) continue;
         const wantsNew = genres.includes(NEW_RELEASE_TAG);
@@ -194,7 +185,6 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
     }
     setSource(startSource);
     setExhausted(false);
-    setStarted(true);
     advance();
   }
 
@@ -215,67 +205,16 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
     );
   }
 
-  if (!started) {
-    return (
-      <main className="flex h-dvh flex-col px-[22px] pt-[18px] pb-[30px]">
-        <div className="flex items-center gap-3">
-          <Link
-            href={`/room/${roomCode}`}
-            aria-label="Wstecz"
-            className="bg-secondary flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full text-lg text-foreground"
-          >
-            ‹
-          </Link>
-          <h1 className="font-heading text-[18px] font-bold text-foreground">Eksploruj</h1>
-        </div>
-
-        <div className="mt-4">
-          <ToggleChip value={source} options={SOURCE_OPTIONS} onChange={setSource} columns={2} />
-        </div>
-
-        {source === "shared" && shared.length === 0 ? (
-          <p className="text-text-secondary mt-6 text-center text-sm">
-            Za mało uczestników z podpiętym Steamem, żeby policzyć wspólną bibliotekę.
-          </p>
-        ) : (
-          <>
-            {source === "shared" && (
-              <p className="text-text-secondary mt-4 text-sm">Wspólna biblioteka: {shared.length} gier</p>
-            )}
-            <div className="mt-5">
-              <p className="mb-2 text-sm font-semibold text-foreground">Jak chcecie grać?</p>
-              <ToggleChip value={multiplayer} options={MULTIPLAYER_OPTIONS} onChange={setMultiplayer} columns={3} />
-            </div>
-            <button
-              type="button"
-              onClick={() => handleStart()}
-              className="bg-accent-brand mt-6 w-full rounded-full py-3 text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)]"
-            >
-              Zacznij przeglądać
-            </button>
-          </>
-        )}
-        <Link
-          href={`/room/${roomCode}/liked`}
-          className="text-text-secondary mt-4 text-center text-sm underline"
-        >
-          Zobacz Polubione →
-        </Link>
-      </main>
-    );
-  }
-
   return (
     <main className="bg-app-gradient flex h-dvh flex-col gap-4 px-[22px] pt-[18px] pb-[10px]">
       <div className="flex items-center gap-3 pr-12">
-        <button
-          type="button"
-          onClick={() => setStarted(false)}
+        <Link
+          href={`/room/${roomCode}`}
           aria-label="Wstecz"
           className="bg-secondary flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full text-lg text-foreground"
         >
           ‹
-        </button>
+        </Link>
         <ParticipantAvatarRow participants={participants} />
         <button
           type="button"
@@ -293,12 +232,38 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
       <VersusStartBanner roomCode={roomCode} participantId={participantId} participants={participants} />
 
       {showSharedLibrary && participantId && (
-        <SharedLibrarySection
-          roomCode={roomCode}
-          participantId={participantId}
-          participants={participants}
-          showEmptyMessage
-        />
+        <div className="flex flex-col gap-2">
+          {source === "catalog" && shared.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                handleStart("shared");
+                setShowSharedLibrary(false);
+              }}
+              className="bg-secondary rounded-full px-4 py-2 text-center text-xs font-bold text-foreground"
+            >
+              Przeglądaj tylko wspólne gry ({shared.length})
+            </button>
+          )}
+          {source === "shared" && (
+            <button
+              type="button"
+              onClick={() => {
+                handleStart("catalog");
+                setShowSharedLibrary(false);
+              }}
+              className="bg-secondary rounded-full px-4 py-2 text-center text-xs font-bold text-foreground"
+            >
+              Wróć do całego katalogu
+            </button>
+          )}
+          <SharedLibrarySection
+            roomCode={roomCode}
+            participantId={participantId}
+            participants={participants}
+            showEmptyMessage
+          />
+        </div>
       )}
 
       <TagFilterBar value={genres} onChange={handleGenreChange} />

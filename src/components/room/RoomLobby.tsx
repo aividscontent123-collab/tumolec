@@ -2,25 +2,24 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { subscribeToParticipants, subscribeToRoom, joinRoom, type Participant } from "@/lib/rooms";
 import { useParticipant } from "@/lib/useParticipant";
 import { useRoomShare } from "@/lib/useRoomShare";
-import { ToggleChip } from "@/components/ui/ToggleChip";
 import { SteamProfileSearchInput } from "@/components/ui/SteamProfileSearchInput";
 import { VersusStartBanner } from "@/components/ui/VersusStartBanner";
-import { filterByPlaytime, type BacklogFilter } from "@/lib/steamLibrary";
 import { MiniGameLauncher } from "@/components/minigames/MiniGameLauncher";
 
 const AVATAR_COLORS = ["#c2703d", "#2fb3a0", "#8b5cf6", "#e05e8f"];
 
 export function RoomLobby({ roomCode }: { roomCode: string }) {
+  const router = useRouter();
   const { participantId, nickname, save } = useParticipant(roomCode);
   const [roomName, setRoomName] = useState<string | null | undefined>(undefined);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [joinNickname, setJoinNickname] = useState("");
   const [joining, setJoining] = useState(false);
   const [joinProfile, setJoinProfile] = useState("");
-  const [joinBacklog, setJoinBacklog] = useState<BacklogFilter>("never");
   const { qrDataUrl, copied, handleShare } = useRoomShare(roomCode, roomName ?? undefined);
 
   useEffect(() => {
@@ -60,8 +59,12 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
             games?: { steamAppId: number; playtimeMinutes: number }[];
             avatarUrl?: string | null;
           };
+          // Bez pytania o backlog przy dołączaniu -- cała biblioteka liczy się
+          // do wspólnej puli, nie tylko nigdy niegrane. Filtrowanie "co pokazać
+          // mi w swipie" to już pigułki w TagFilterBar, osobna sprawa od tego,
+          // co w ogóle rejestrujemy jako Twoją bibliotekę.
           if (res.ok && data.games) {
-            steamLibraryAppIds = filterByPlaytime(data.games as never, joinBacklog).map((g) => g.steamAppId);
+            steamLibraryAppIds = data.games.map((g) => g.steamAppId);
           }
           // Awatar jest niezależny od tego, czy biblioteka gier jest publiczna
           // (osobne ustawienie prywatności Steam) -- dostępny nawet gdy `res.ok`
@@ -74,7 +77,11 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
       }
       await joinRoom(roomCode, id, joinNickname.trim(), steamLibraryAppIds, steamAvatarUrl);
       save(id, joinNickname.trim());
-      setJoining(false);
+      // Prosto do przeglądania -- bez lobby jako obowiązkowego przystanku.
+      // Lobby (QR/udostępnij/Historia/pula) zostaje dostępne z powrotem przez
+      // przycisk "Wstecz" w Explore, nie znika, tylko przestaje być krokiem
+      // pomiędzy dołączeniem a graniem.
+      router.push(`/room/${roomCode}/explore`);
     }
 
     return (
@@ -97,19 +104,6 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
               onChange={setJoinProfile}
               placeholder="Twój profil Steam (opcjonalnie)"
             />
-            {joinProfile.trim() && (
-              <ToggleChip
-                value={joinBacklog}
-                options={[
-                  { value: "never", label: "Nigdy nie grane" },
-                  { value: "under2h", label: "Poniżej 2h" },
-                  { value: "under10h", label: "Poniżej 10h" },
-                  { value: "abandoned", label: "Porzucone" },
-                ]}
-                onChange={setJoinBacklog}
-                columns={2}
-              />
-            )}
             <button
               type="submit"
               disabled={joining}
