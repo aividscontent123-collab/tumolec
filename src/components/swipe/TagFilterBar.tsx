@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import {
   Search,
   ChevronRight,
+  ChevronLeft,
+  ChevronsLeft,
   Users,
   Users2,
   Sparkles,
@@ -93,6 +95,14 @@ export function TagFilterBar({ value, onChange }: { value: string[]; onChange: (
     scrollRef.current?.scrollBy({ left: SCROLL_STEP_PX, behavior: "smooth" });
   }
 
+  function scrollLeft() {
+    scrollRef.current?.scrollBy({ left: -SCROLL_STEP_PX, behavior: "smooth" });
+  }
+
+  function scrollToStart() {
+    scrollRef.current?.scrollTo({ left: 0, behavior: "smooth" });
+  }
+
   const trimmedQuery = query.trim().toLowerCase();
   const searchMatches =
     trimmedQuery.length > 0
@@ -104,6 +114,22 @@ export function TagFilterBar({ value, onChange }: { value: string[]; onChange: (
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={scrollToStart}
+          aria-label="Przewiń na początek"
+          className="bg-secondary hidden h-7 w-7 shrink-0 items-center justify-center rounded-full text-foreground md:flex"
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={scrollLeft}
+          aria-label="Przewiń w lewo"
+          className="bg-secondary hidden h-7 w-7 shrink-0 items-center justify-center rounded-full text-foreground md:flex"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
         <div
           ref={scrollRef}
           className="flex flex-1 gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
