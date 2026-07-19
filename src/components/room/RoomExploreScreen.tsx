@@ -7,6 +7,7 @@ import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import { ToggleChip } from "@/components/ui/ToggleChip";
+import { ParticipantAvatarRow } from "@/components/ui/ParticipantAvatarRow";
 import { SharedLibrarySection } from "@/components/room/SharedLibrarySection";
 import { TagFilterBar, NEW_RELEASE_TAG, UPCOMING_TAG } from "@/components/swipe/TagFilterBar";
 import {
@@ -274,6 +275,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
         >
           ‹
         </button>
+        <ParticipantAvatarRow participants={participants} />
         <button
           type="button"
           onClick={() => setShowSharedLibrary((v) => !v)}

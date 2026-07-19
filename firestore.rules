@@ -23,7 +23,8 @@ service cloud.firestore {
         allow create: if isValidNickname(request.resource.data.nickname)
           && (!('steamLibraryAppIds' in request.resource.data)
               || (request.resource.data.steamLibraryAppIds is list
-                  && request.resource.data.steamLibraryAppIds.size() <= 3000));
+                  && request.resource.data.steamLibraryAppIds.size() <= 3000))
+          && (!('steamAvatarUrl' in request.resource.data) || request.resource.data.steamAvatarUrl is string);
         allow update, delete: if false;
       }
 

@@ -63,18 +63,25 @@ export function subscribeToRoom(
   });
 }
 
-export type Participant = { participantId: string; nickname: string; steamLibraryAppIds?: number[] };
+export type Participant = {
+  participantId: string;
+  nickname: string;
+  steamLibraryAppIds?: number[];
+  steamAvatarUrl?: string;
+};
 
 export async function joinRoom(
   roomCode: string,
   participantId: string,
   nickname: string,
   steamLibraryAppIds?: number[],
+  steamAvatarUrl?: string,
 ) {
   await setDoc(doc(db, "rooms", roomCode, "participants", participantId), {
     nickname,
     joinedAt: serverTimestamp(),
     ...(steamLibraryAppIds ? { steamLibraryAppIds } : {}),
+    ...(steamAvatarUrl ? { steamAvatarUrl } : {}),
   });
 }
 
@@ -82,8 +89,13 @@ export function subscribeToParticipants(roomCode: string, onChange: (p: Particip
   return onSnapshot(collection(db, "rooms", roomCode, "participants"), (snap) => {
     onChange(
       snap.docs.map((d) => {
-        const data = d.data() as { nickname: string; steamLibraryAppIds?: number[] };
-        return { participantId: d.id, nickname: data.nickname, steamLibraryAppIds: data.steamLibraryAppIds };
+        const data = d.data() as { nickname: string; steamLibraryAppIds?: number[]; steamAvatarUrl?: string };
+        return {
+          participantId: d.id,
+          nickname: data.nickname,
+          steamLibraryAppIds: data.steamLibraryAppIds,
+          steamAvatarUrl: data.steamAvatarUrl,
+        };
       }),
     );
   });

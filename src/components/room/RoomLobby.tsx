@@ -62,19 +62,27 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
       setJoining(true);
       const id = crypto.randomUUID();
       let steamLibraryAppIds: number[] | undefined;
+      let steamAvatarUrl: string | undefined;
       if (joinProfile.trim()) {
         try {
           const res = await fetch(`/api/steam/library?profile=${encodeURIComponent(joinProfile.trim())}`);
-          const data = (await res.json()) as { games?: { steamAppId: number; playtimeMinutes: number }[] };
+          const data = (await res.json()) as {
+            games?: { steamAppId: number; playtimeMinutes: number }[];
+            avatarUrl?: string | null;
+          };
           if (res.ok && data.games) {
             steamLibraryAppIds = filterByPlaytime(data.games as never, joinBacklog).map((g) => g.steamAppId);
           }
+          // Awatar jest niezależny od tego, czy biblioteka gier jest publiczna
+          // (osobne ustawienie prywatności Steam) -- dostępny nawet gdy `res.ok`
+          // jest false (404/502 dla prywatnej/pustej biblioteki).
+          if (data.avatarUrl) steamAvatarUrl = data.avatarUrl;
         } catch {
           // ponytail: brak biblioteki nie blokuje dolaczenia, wspolna biblioteka
           // po prostu nie bedzie uwzgledniac tego uczestnika
         }
       }
-      await joinRoom(roomCode, id, joinNickname.trim(), steamLibraryAppIds);
+      await joinRoom(roomCode, id, joinNickname.trim(), steamLibraryAppIds, steamAvatarUrl);
       save(id, joinNickname.trim());
       setJoining(false);
     }

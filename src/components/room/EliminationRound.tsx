@@ -7,6 +7,7 @@ import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import { WinnerScreen } from "@/components/room/WinnerScreen";
 import { RoomTieBreaker } from "@/components/room/RoomTieBreaker";
+import { ParticipantAvatarRow } from "@/components/ui/ParticipantAvatarRow";
 import { useParticipant } from "@/lib/useParticipant";
 import {
   subscribeToParticipants,
@@ -256,9 +257,13 @@ function RoundVoting({
             ‹
           </Link>
           <p className="text-text-secondary flex-1 text-center text-xs tracking-widest">{progressText}</p>
+          <ParticipantAvatarRow participants={participants} />
         </div>
       ) : (
-        <p className="text-text-secondary pt-6 pb-2 text-center text-xs tracking-widest">{progressText}</p>
+        <div className="flex items-center gap-3 px-[22px] pt-6 pb-2">
+          <p className="text-text-secondary flex-1 text-center text-xs tracking-widest">{progressText}</p>
+          <ParticipantAvatarRow participants={participants} />
+        </div>
       )}
       <main className="min-h-0 flex-1 px-[22px] pb-[18px] lg:flex lg:flex-col lg:justify-center">
         {currentGame ? (

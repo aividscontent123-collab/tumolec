@@ -26,6 +26,21 @@ async function resolveSteamId64(vanityOrId: string, apiKey: string): Promise<str
 
 type GetOwnedGamesRaw = { appid: number; name: string; playtime_forever: number };
 
+/** Awatar to osobne wywołanie (GetOwnedGames go nie zwraca) -- best-effort,
+ * brak awatara nigdy nie blokuje wczytania biblioteki, tylko degraduje UI
+ * do awatara z pierwszą literą nicku (zob. ParticipantAvatarRow). */
+async function fetchAvatarUrl(steamId64: string, apiKey: string): Promise<string | null> {
+  try {
+    const url = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${apiKey}&steamids=${steamId64}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { response: { players?: { avatarmedium?: string }[] } };
+    return data.response.players?.[0]?.avatarmedium ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest) {
   const input = request.nextUrl.searchParams.get("profile");
   const apiKey = process.env.STEAM_API_KEY;
@@ -43,11 +58,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Nie znaleziono profilu Steam o tej nazwie." }, { status: 404 });
   }
 
+  // Awatar ma OSOBNE ustawienie prywatności od biblioteki gier ("Szczegóły
+  // gry") -- pobierany od razu po rozwiązaniu steamId64 i dołączany do KAŻDEJ
+  // odpowiedzi (sukces i błąd) niżej, żeby prywatna/pusta biblioteka nie
+  // gubiła awatara, który i tak jest publiczny.
+  const avatarUrl = await fetchAvatarUrl(steamId64, apiKey);
+
   try {
     const ownedUrl = `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${apiKey}&steamid=${steamId64}&include_appinfo=1&include_played_free_games=1`;
     const ownedRes = await fetch(ownedUrl);
     if (!ownedRes.ok) {
-      return NextResponse.json({ error: "Nie udało się pobrać biblioteki ze Steam." }, { status: 502 });
+      return NextResponse.json({ error: "Nie udało się pobrać biblioteki ze Steam.", avatarUrl }, { status: 502 });
     }
     const owned = (await ownedRes.json()) as {
       response: { game_count?: number; games?: GetOwnedGamesRaw[] };
@@ -57,6 +78,7 @@ export async function GET(request: NextRequest) {
         {
           error:
             "Profil jest prywatny albo biblioteka jest pusta. Ustaw \"Szczegóły gry\" na publiczne w ustawieniach prywatności Steam.",
+          avatarUrl,
         },
         { status: 404 },
       );
@@ -66,8 +88,8 @@ export async function GET(request: NextRequest) {
       name: g.name,
       playtimeMinutes: g.playtime_forever,
     }));
-    return NextResponse.json({ games });
+    return NextResponse.json({ games, avatarUrl });
   } catch {
-    return NextResponse.json({ error: "Nie udało się pobrać biblioteki ze Steam." }, { status: 502 });
+    return NextResponse.json({ error: "Nie udało się pobrać biblioteki ze Steam.", avatarUrl }, { status: 502 });
   }
 }
