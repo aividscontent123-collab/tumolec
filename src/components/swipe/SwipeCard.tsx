@@ -10,6 +10,7 @@ import { decideSwipeDirection } from "@/lib/swipeGesture";
 import { steamLibraryPortraitUrl } from "@/lib/steamImages";
 
 const SPRING_BACK = { type: "spring", stiffness: 500, damping: 30 } as const;
+const DIRECTION_LOCK_RATIO = 1.5;
 
 /** Karta gry w talii swipe. @use-gesture/react czyta gest przeciągania,
  * framer-motion animuje pozycję/rotację/poświatę. Fling wywołuje `onSwipe`
@@ -54,8 +55,10 @@ export function SwipeCard({
 
   const bind = useDrag(({ movement: [mx, my], velocity: [vx], last }) => {
     if (!last) {
-      x.set(mx);
-      y.set(my);
+      if (Math.abs(mx) > Math.abs(my) * DIRECTION_LOCK_RATIO) {
+        x.set(mx);
+        y.set(my);
+      }
       return;
     }
     const direction = decideSwipeDirection(mx, vx);
