@@ -8,6 +8,7 @@ import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { ParticipantAvatarRow } from "@/components/ui/ParticipantAvatarRow";
+import { VersusStartBanner } from "@/components/ui/VersusStartBanner";
 import { SharedLibrarySection } from "@/components/room/SharedLibrarySection";
 import { TagFilterBar, NEW_RELEASE_TAG, UPCOMING_TAG } from "@/components/swipe/TagFilterBar";
 import {
@@ -288,6 +289,8 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
           ❤️ {likedCount}
         </Link>
       </div>
+
+      <VersusStartBanner roomCode={roomCode} participantId={participantId} participants={participants} />
 
       {showSharedLibrary && participantId && (
         <SharedLibrarySection
