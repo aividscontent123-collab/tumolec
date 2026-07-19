@@ -6,6 +6,7 @@ import {
   ChevronRight,
   ChevronLeft,
   ChevronsLeft,
+  User,
   Users,
   Users2,
   Sparkles,
@@ -43,6 +44,7 @@ const GENRE_ICONS: Record<string, LucideIcon> = {
 type Pill = { value: string; label: string; icon: LucideIcon | null };
 
 const PINNED_TAGS: Pill[] = [
+  { value: "Jednoosobowa", label: "Solo", icon: User },
   { value: "Kooperacja", label: "Kooperacja", icon: Users2 },
   { value: "Wieloosobowa", label: "Multiplayer", icon: Users },
   { value: NEW_RELEASE_TAG, label: "Nowości", icon: Sparkles },
