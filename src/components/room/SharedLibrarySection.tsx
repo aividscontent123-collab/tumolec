@@ -8,17 +8,26 @@ export function SharedLibrarySection({
   roomCode,
   participantId,
   participants,
+  showEmptyMessage = false,
 }: {
   roomCode: string;
   participantId: string;
   participants: Participant[];
+  showEmptyMessage?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const withLibrary = participants.filter((p) => (p.steamLibraryAppIds?.length ?? 0) > 0);
-  if (withLibrary.length < 2) return null;
+  if (withLibrary.length < 2) {
+    if (!showEmptyMessage) return null;
+    return (
+      <p className="text-text-secondary text-center text-xs">
+        Za mało uczestników udostępniło bibliotekę Steam, żeby porównać (trzeba podać profil przy dołączaniu do pokoju).
+      </p>
+    );
+  }
 
   const shared = computeSharedLibrary(participants);
   if (shared.length === 0) {

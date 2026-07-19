@@ -7,6 +7,7 @@ import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import { ToggleChip } from "@/components/ui/ToggleChip";
+import { SharedLibrarySection } from "@/components/room/SharedLibrarySection";
 import { TagFilterBar, NEW_RELEASE_TAG, UPCOMING_TAG } from "@/components/swipe/TagFilterBar";
 import {
   computeSharedLibrary,
@@ -52,6 +53,7 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
   const [source, setSource] = useState<"shared" | "catalog">("shared");
   const [likedCount, setLikedCount] = useState(0);
   const [started, setStarted] = useState(false);
+  const [showSharedLibrary, setShowSharedLibrary] = useState(false);
   const [currentCard, setCurrentCard] = useState<SwipeGame | null>(null);
   const [loadingCard, setLoadingCard] = useState(false);
   const [exhausted, setExhausted] = useState(false);
@@ -272,10 +274,27 @@ export function RoomExploreScreen({ roomCode }: { roomCode: string }) {
         >
           ‹
         </button>
-        <Link href={`/room/${roomCode}/liked`} className="bg-secondary ml-auto rounded-full px-4 py-2 text-xs font-bold text-foreground">
+        <button
+          type="button"
+          onClick={() => setShowSharedLibrary((v) => !v)}
+          aria-pressed={showSharedLibrary}
+          className="bg-secondary ml-auto rounded-full px-4 py-2 text-xs font-bold text-foreground"
+        >
+          🤝 Porównaj
+        </button>
+        <Link href={`/room/${roomCode}/liked`} className="bg-secondary rounded-full px-4 py-2 text-xs font-bold text-foreground">
           ❤️ {likedCount}
         </Link>
       </div>
+
+      {showSharedLibrary && participantId && (
+        <SharedLibrarySection
+          roomCode={roomCode}
+          participantId={participantId}
+          participants={participants}
+          showEmptyMessage
+        />
+      )}
 
       <TagFilterBar value={genres} onChange={handleGenreChange} />
 
