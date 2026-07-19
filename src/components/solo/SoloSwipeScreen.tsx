@@ -98,6 +98,11 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
           const matchesDate =
             (wantsNew && isRecentRelease(data.releaseDate)) || (wantsSoon && isUpcomingSoon(data.releaseDate));
           if (!matchesDate) continue;
+        } else if (data.releaseDate?.comingSoon) {
+          // Domyślne przeglądanie (bez wybranego Nowości/Wkrótce) nie ma
+          // pokazywać niewydanych jeszcze tytułów -- to opt-in przez te
+          // pigułki, nie coś co ma wpadać przypadkiem.
+          continue;
         }
         excludeSetRef.current.add(candidate.appId);
         setCurrentCard(toSwipeGame(data.steamAppId, data));

@@ -74,6 +74,7 @@ export async function searchSteamGames(term: string): Promise<SteamSearchResult[
 
 type RawAppDetailsData = {
   name: string;
+  type?: string;
   header_image: string;
   short_description: string;
   genres?: { description: string }[];
@@ -167,6 +168,16 @@ export async function fetchSteamGameDetails(steamAppId: number): Promise<SteamCa
   const entry = details[String(steamAppId)];
   if (!entry?.success || !entry.data) {
     throw new Error(`Steam nie zwrócił danych dla appid ${steamAppId}`);
+  }
+  // DLC/demo/soundtrack itp. mają `type` inny niż "game" -- appdetails
+  // niesie ten sygnał wprost (zweryfikowane na żywo: appid 304212 "Euro
+  // Truck Simulator 2 - Scandinavia" zwraca type=dlc). Odrzucenie tutaj,
+  // w jedynym miejscu wołanym przez WSZYSTKICH konsumentów (przeglądanie
+  // solo/pokój, ręczne dodawanie), jest równoznaczne z pominięciem takiego
+  // kandydata wszędzie -- każdy istniejący wołający już traktuje rzucony
+  // tu błąd jako "pomiń i idź dalej".
+  if (entry.data.type && entry.data.type !== "game") {
+    throw new Error(`Appid ${steamAppId} to nie gra (type=${entry.data.type}).`);
   }
   const reviews = (await reviewsRes.json()) as AppReviewsResponse;
 
