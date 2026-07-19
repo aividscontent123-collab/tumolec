@@ -6,7 +6,7 @@ import { TagFilterBar, NEW_RELEASE_TAG, UPCOMING_TAG } from "@/components/swipe/
 import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
 import type { SwipeGame } from "@/lib/types";
-import { matchesMultiplayerFilter, type MultiplayerFilter, type SteamOwnedGame } from "@/lib/steamLibrary";
+import type { SteamOwnedGame } from "@/lib/steamLibrary";
 import { matchesTagOrCommunityFilter, toSwipeGame, type SteamCacheEntry } from "@/lib/steam";
 import { isRecentRelease, isUpcomingSoon } from "@/lib/releaseCountdown";
 import { addLiked, getLocalLiked, saveLocalLiked } from "@/lib/localLiked";
@@ -21,11 +21,11 @@ type DetailsResponse = SteamCacheEntry & { steamAppId: number; error?: string };
  * dopiero dla kolejnego kandydata z `pool`, pomijane jeśli nie pasuje do
  * filtra solo/multi -- nigdy nie pytamy o więcej niż faktycznie pokazujemy. */
 type SoloSwipeProps =
-  | { source: "library"; pool: SteamOwnedGame[]; multiplayerFilter: MultiplayerFilter; onExit: () => void; onViewLiked: () => void }
-  | { source: "catalog"; excludeAppIds: number[]; multiplayerFilter: MultiplayerFilter; onExit: () => void; onViewLiked: () => void };
+  | { source: "library"; pool: SteamOwnedGame[]; onExit: () => void; onViewLiked: () => void }
+  | { source: "catalog"; excludeAppIds: number[]; onExit: () => void; onViewLiked: () => void };
 
 export function SoloSwipeScreen(props: SoloSwipeProps) {
-  const { multiplayerFilter, onExit, onViewLiked } = props;
+  const { onExit, onViewLiked } = props;
   const [genreFilter, setGenreFilter] = useState<string[]>([]);
   const cursorRef = useRef(0);
   // tagIds: null = brak danych społecznościowych Steama (biblioteka/wspólna pula
@@ -90,7 +90,6 @@ export function SoloSwipeScreen(props: SoloSwipeProps) {
         // nie mają go wcale -- normalizacja od razu, przed filtrami, żeby nie
         // wywaliły się na undefined (toSwipeGame normalizuje resztę pól samo).
         const tags = data.tags ?? [];
-        if (!matchesMultiplayerFilter(tags, multiplayerFilter)) continue;
         const realTags = genreFilter.filter((v) => v !== NEW_RELEASE_TAG && v !== UPCOMING_TAG);
         if (!matchesTagOrCommunityFilter(tags, candidate.tagIds, realTags)) continue;
         const wantsNew = genreFilter.includes(NEW_RELEASE_TAG);

@@ -10,14 +10,13 @@ import {
   filterByPlaytime,
   shuffleGames,
   type BacklogFilter,
-  type MultiplayerFilter,
   type SteamOwnedGame,
 } from "@/lib/steamLibrary";
 
 type Screen =
   | { name: "settings" }
-  | { name: "swipe"; source: "library"; pool: SteamOwnedGame[]; multiplayer: MultiplayerFilter }
-  | { name: "swipe"; source: "catalog"; excludeAppIds: number[]; multiplayer: MultiplayerFilter }
+  | { name: "swipe"; source: "library"; pool: SteamOwnedGame[] }
+  | { name: "swipe"; source: "catalog"; excludeAppIds: number[] }
   | { name: "liked" }
   | { name: "versus"; games: SwipeGame[] };
 
@@ -26,18 +25,13 @@ export function SoloHome() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleLoadLibrary(
-    source: "library" | "catalog",
-    profile: string,
-    backlog: BacklogFilter,
-    multiplayer: MultiplayerFilter,
-  ) {
+  async function handleLoadLibrary(source: "library" | "catalog", profile: string, backlog: BacklogFilter) {
     setLoading(true);
     setError(null);
     try {
       if (!profile) {
         // Katalog bez profilu -- nic do wykluczenia, prosto do Explore.
-        setScreen({ name: "swipe", source: "catalog", excludeAppIds: [], multiplayer });
+        setScreen({ name: "swipe", source: "catalog", excludeAppIds: [] });
         setLoading(false);
         return;
       }
@@ -51,7 +45,7 @@ export function SoloHome() {
       }
 
       if (source === "catalog") {
-        setScreen({ name: "swipe", source: "catalog", excludeAppIds: data.games.map((g) => g.steamAppId), multiplayer });
+        setScreen({ name: "swipe", source: "catalog", excludeAppIds: data.games.map((g) => g.steamAppId) });
         setLoading(false);
         return;
       }
@@ -62,7 +56,7 @@ export function SoloHome() {
         setLoading(false);
         return;
       }
-      setScreen({ name: "swipe", source: "library", pool: shuffleGames(filtered), multiplayer });
+      setScreen({ name: "swipe", source: "library", pool: shuffleGames(filtered) });
       setLoading(false);
     } catch {
       setError("Coś poszło nie tak. Spróbuj ponownie.");
@@ -75,7 +69,6 @@ export function SoloHome() {
       <SoloSwipeScreen
         source="library"
         pool={screen.pool}
-        multiplayerFilter={screen.multiplayer}
         onExit={() => setScreen({ name: "settings" })}
         onViewLiked={() => setScreen({ name: "liked" })}
       />
@@ -87,7 +80,6 @@ export function SoloHome() {
       <SoloSwipeScreen
         source="catalog"
         excludeAppIds={screen.excludeAppIds}
-        multiplayerFilter={screen.multiplayer}
         onExit={() => setScreen({ name: "settings" })}
         onViewLiked={() => setScreen({ name: "liked" })}
       />

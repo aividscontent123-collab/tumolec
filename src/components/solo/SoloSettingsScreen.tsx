@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { roomExists, createRoom, joinRoom } from "@/lib/rooms";
-import { type BacklogFilter, type MultiplayerFilter } from "@/lib/steamLibrary";
+import { type BacklogFilter } from "@/lib/steamLibrary";
 
 const BACKLOG_OPTIONS: { value: BacklogFilter; label: string }[] = [
   { value: "never", label: "Nigdy nie grane (0 min)" },
@@ -14,25 +14,19 @@ const BACKLOG_OPTIONS: { value: BacklogFilter; label: string }[] = [
   { value: "abandoned", label: "Porzucone (2-10 h)" },
 ];
 
-const MULTIPLAYER_OPTIONS: { value: MultiplayerFilter; label: string }[] = [
-  { value: "all", label: "Wszystkie" },
-  { value: "solo", label: "Jednoosobowe" },
-  { value: "multi", label: "Wieloosobowe" },
-];
-
 export function SoloSettingsScreen({
   onLoadLibrary,
   loading,
   error,
 }: {
-  onLoadLibrary: (source: "library" | "catalog", profile: string, backlog: BacklogFilter, multiplayer: MultiplayerFilter) => void;
+  onLoadLibrary: (source: "library" | "catalog", profile: string, backlog: BacklogFilter) => void;
   loading: boolean;
   error: string | null;
 }) {
   const router = useRouter();
   const [profile, setProfile] = useState("");
   const [backlog, setBacklog] = useState<BacklogFilter>("never");
-  const [multiplayer, setMultiplayer] = useState<MultiplayerFilter>("all");
+  const [showLibrary, setShowLibrary] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [showJoin, setShowJoin] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -90,51 +84,63 @@ export function SoloSettingsScreen({
           Wybierz jak chcesz przeglądać gry — z własnej biblioteki albo z całego katalogu Steam.
         </p>
 
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold text-foreground">Twój profil Steam</span>
-          <input
-            value={profile}
-            onChange={(e) => setProfile(e.target.value)}
-            placeholder="https://steamcommunity.com/id/..."
-            className="bg-card border-border rounded-xl border px-4 py-3 text-foreground"
-          />
-          <p className="text-text-secondary text-xs">
-            Wklej link do profilu (steamcommunity.com/id/... lub /profiles/...) albo własną nazwę URL.
-          </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => onLoadLibrary("catalog", "", backlog)}
+              className="bg-accent-brand rounded-full py-3 text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)] disabled:opacity-50"
+            >
+              {loading && !showLibrary ? "Wczytuję…" : "Eksploruj katalog"}
+            </button>
+            <p className="text-text-secondary text-center text-xs">Przeglądaj cały Steam</p>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowLibrary((v) => !v)}
+              aria-pressed={showLibrary}
+              className="bg-accent-brand rounded-full py-3 text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)]"
+            >
+              Eksploruj bibliotekę
+            </button>
+            <p className="text-text-secondary text-center text-xs">Tylko gry, które już masz</p>
+          </div>
         </div>
 
-        {profile.trim() !== "" && (
-          <div className="mt-5">
-            <p className="mb-2 text-sm font-semibold text-foreground">Które gry pokazywać?</p>
-            <ToggleChip value={backlog} options={BACKLOG_OPTIONS} onChange={setBacklog} columns={2} />
+        {showLibrary && (
+          <div className="mt-5 flex flex-col gap-1.5">
+            <span className="text-sm font-semibold text-foreground">Twój profil Steam</span>
+            <input
+              value={profile}
+              onChange={(e) => setProfile(e.target.value)}
+              placeholder="https://steamcommunity.com/id/..."
+              className="bg-card border-border rounded-xl border px-4 py-3 text-foreground"
+            />
+            <p className="text-text-secondary text-xs">
+              Wklej link do profilu (steamcommunity.com/id/... lub /profiles/...) albo własną nazwę URL.
+            </p>
+
+            {profile.trim() !== "" && (
+              <div className="mt-3">
+                <p className="mb-2 text-sm font-semibold text-foreground">Które gry pokazywać?</p>
+                <ToggleChip value={backlog} options={BACKLOG_OPTIONS} onChange={setBacklog} columns={2} />
+              </div>
+            )}
+
+            <button
+              type="button"
+              disabled={loading || !profile.trim()}
+              onClick={() => onLoadLibrary("library", profile.trim(), backlog)}
+              className="bg-accent-brand mt-3 rounded-full py-3 text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)] disabled:opacity-50"
+            >
+              {loading ? "Wczytuję…" : "Wczytaj bibliotekę"}
+            </button>
           </div>
         )}
 
-        <div className="mt-5">
-          <p className="mb-2 text-sm font-semibold text-foreground">Jak chcesz grać?</p>
-          <ToggleChip value={multiplayer} options={MULTIPLAYER_OPTIONS} onChange={setMultiplayer} columns={3} />
-        </div>
-
         {error && <p className="text-pass mt-4 text-sm">{error}</p>}
-
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            disabled={loading}
-            onClick={() => onLoadLibrary("catalog", profile.trim(), backlog, multiplayer)}
-            className="bg-accent-brand rounded-full py-3 text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)] disabled:opacity-50"
-          >
-            {loading ? "Wczytuję…" : "Eksploruj katalog"}
-          </button>
-          <button
-            type="button"
-            disabled={loading || !profile.trim()}
-            onClick={() => onLoadLibrary("library", profile.trim(), backlog, multiplayer)}
-            className="bg-accent-brand rounded-full py-3 text-sm font-bold text-white shadow-[0_8px_24px_var(--accent-brand-soft)] disabled:opacity-50"
-          >
-            {loading ? "Wczytuję…" : "Eksploruj bibliotekę"}
-          </button>
-        </div>
 
         <div className="mt-6 flex flex-col items-center gap-2">
           <Link href="/packages" className="text-text-secondary text-center text-sm underline">
