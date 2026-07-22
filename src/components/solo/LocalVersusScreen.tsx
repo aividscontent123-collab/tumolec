@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useLocalVersus } from "@/lib/useLocalVersus";
+import { addVersusWin, getLocalVersusHistory, saveLocalVersusHistory } from "@/lib/localVersusHistory";
 import { SwipeCard } from "@/components/swipe/SwipeCard";
 import { GameDetailLayout } from "@/components/swipe/GameDetailLayout";
 import { SwipeActionButtons } from "@/components/swipe/SwipeActionButtons";
@@ -15,6 +17,19 @@ export function LocalVersusScreen({ games, onExit }: { games: SwipeGame[]; onExi
   const gameByAppId = new Map(games.map((g) => [g.steamAppId, g]));
   const { pool, deck, poolSize, winner, vote, tieBreak, startTieBreak, resolveTieBreak, restart } =
     useLocalVersus(games.map((g) => g.steamAppId));
+
+  // Zapisz wpis do logu DOKŁADNIE RAZ na przejście null -> zwycięzca, nie przy
+  // każdym renderze (winner zostaje ustawiony aż do restart()/reroll).
+  const loggedWinnerRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (winner !== null && loggedWinnerRef.current !== winner) {
+      loggedWinnerRef.current = winner;
+      saveLocalVersusHistory(addVersusWin(getLocalVersusHistory(), winner));
+    }
+    if (winner === null) {
+      loggedWinnerRef.current = null;
+    }
+  }, [winner]);
 
   if (winner !== null) {
     return <WinnerScreen game={gameByAppId.get(winner)} onReroll={restart} />;
