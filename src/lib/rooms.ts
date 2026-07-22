@@ -219,6 +219,7 @@ export type RoundDoc = {
   survivors: number[] | null;
   sessionId: string;
   tieBreak?: TieBreakState;
+  finishedAt?: Timestamp | null;
 };
 
 export async function getRound(roomCode: string, roundId: string): Promise<RoundDoc | null> {
@@ -308,11 +309,15 @@ export function subscribeToRound(
 /** Zamyka rundę z policzonym wynikiem. Wywoływane przez KTÓRYKOLWIEK klient,
  * który zauważy że wszyscy skończyli głosować -- bezpieczne przy wyścigu,
  * bo `survivors` to czysta funkcja tych samych danych (resolveRound), więc
- * każdy klient policzy identyczny wynik niezależnie od tego kto zapisze pierwszy. */
+ * każdy klient policzy identyczny wynik niezależnie od tego kto zapisze pierwszy.
+ * `finishedAt` zasila statystyki aktywności w czasie -- zapisywane na KAŻDEJ
+ * zamykanej rundzie (nie tylko finałowej), upraszcza kod; tylko finałowa
+ * runda (1 ocalały) jest brana pod uwagę przy liczeniu Statystyk. */
 export async function finishRound(roomCode: string, roundId: string, survivors: number[]) {
   await updateDoc(doc(db, "rooms", roomCode, "eliminationRounds", roundId), {
     status: "finished",
     survivors,
+    finishedAt: serverTimestamp(),
   });
 }
 
