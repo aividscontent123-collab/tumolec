@@ -39,11 +39,11 @@ describe("computeStats", () => {
 
   it("counts total wins and ranks top games, breaking ties by steamAppId", () => {
     const wins: WinEvent[] = [
+      { steamAppId: 20, wonAt: null },
       { steamAppId: 10, wonAt: null },
       { steamAppId: 20, wonAt: null },
       { steamAppId: 10, wonAt: null },
       { steamAppId: 30, wonAt: null },
-      { steamAppId: 20, wonAt: null },
     ];
     const stats = computeStats(wins, {}, []);
     expect(stats.totalWins).toBe(5);
