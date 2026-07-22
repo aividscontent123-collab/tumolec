@@ -62,10 +62,11 @@ service cloud.firestore {
         // bezpieczny odczyt przez `.get(key, default)`, żeby nie wywalać
         // całej reguły przy braku pola.
         allow update: if request.resource.data.diff(resource.data)
-          .affectedKeys().hasOnly(['status', 'survivors', 'tieBreak'])
+          .affectedKeys().hasOnly(['status', 'survivors', 'tieBreak', 'finishedAt'])
           && request.resource.data.status in ['voting', 'finished']
           && (request.resource.data.get('survivors', null) is list || request.resource.data.get('survivors', null) == null)
-          && (!('tieBreak' in request.resource.data) || request.resource.data.tieBreak is map);
+          && (!('tieBreak' in request.resource.data) || request.resource.data.tieBreak is map)
+          && (!('finishedAt' in request.resource.data) || request.resource.data.finishedAt is timestamp);
         allow delete: if false;
 
         match /swipes/{swipeId} {
