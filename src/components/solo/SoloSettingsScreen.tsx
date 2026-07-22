@@ -19,10 +19,12 @@ export function SoloSettingsScreen({
   onLoadLibrary,
   loading,
   error,
+  onViewStats,
 }: {
   onLoadLibrary: (source: "library" | "catalog", profile: string, backlog: BacklogFilter) => void;
   loading: boolean;
   error: string | null;
+  onViewStats: () => void;
 }) {
   const router = useRouter();
   const [profile, setProfile] = useState("");
@@ -142,6 +144,13 @@ export function SoloSettingsScreen({
           <Link href="/packages" className="text-text-secondary text-center text-sm underline">
             Zapisane paczki gier
           </Link>
+          <button
+            type="button"
+            onClick={onViewStats}
+            className="text-text-secondary text-center text-sm underline"
+          >
+            Statystyki
+          </button>
           <button
             type="button"
             onClick={() => setShowCreate((v) => !v)}

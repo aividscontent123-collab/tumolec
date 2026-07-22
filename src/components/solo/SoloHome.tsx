@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LocalVersusScreen } from "@/components/solo/LocalVersusScreen";
 import { SoloLikedScreen } from "@/components/solo/SoloLikedScreen";
 import { SoloSettingsScreen } from "@/components/solo/SoloSettingsScreen";
+import { SoloStatsScreen } from "@/components/solo/SoloStatsScreen";
 import { SoloSwipeScreen } from "@/components/solo/SoloSwipeScreen";
 import type { SwipeGame } from "@/lib/types";
 import {
@@ -15,6 +16,7 @@ import {
 
 type Screen =
   | { name: "settings" }
+  | { name: "stats" }
   | { name: "swipe"; source: "library"; pool: SteamOwnedGame[] }
   | { name: "swipe"; source: "catalog"; excludeAppIds: number[] }
   | { name: "liked" }
@@ -99,5 +101,16 @@ export function SoloHome() {
     );
   }
 
-  return <SoloSettingsScreen onLoadLibrary={handleLoadLibrary} loading={loading} error={error} />;
+  if (screen.name === "stats") {
+    return <SoloStatsScreen onBack={() => setScreen({ name: "settings" })} />;
+  }
+
+  return (
+    <SoloSettingsScreen
+      onLoadLibrary={handleLoadLibrary}
+      loading={loading}
+      error={error}
+      onViewStats={() => setScreen({ name: "stats" })}
+    />
+  );
 }
