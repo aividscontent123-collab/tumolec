@@ -180,6 +180,12 @@ export function RoomLobby({ roomCode }: { roomCode: string }) {
         >
           Historia
         </Link>
+        <Link
+          href={`/room/${roomCode}/stats`}
+          className="bg-secondary rounded-full py-3 text-center text-sm font-bold text-foreground"
+        >
+          Statystyki
+        </Link>
       </div>
       <MiniGameLauncher mode={{ kind: "room", roomCode }} />
     </main>
